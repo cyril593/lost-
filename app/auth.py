@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+# app/auth.py
+
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, current_user
 from app import db
 from app.forms import LoginForm, RegistrationForm
@@ -8,47 +10,104 @@ bp = Blueprint('auth', __name__)
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        email_data = form.email.data.strip().lower()
+        password_data = form.password.data.strip()
+        name_data = form.name.data.strip()
+
+        # DEBUGGING: Print plain-text password before hashing
+        print(f"DEBUG (Register): Plain-text password received: '{password_data}'")
+
+        existing_user = User.query.filter_by(email=email_data).first()
+        if existing_user:
+            flash('An account with this email already exists. Please login or use a different email.', 'danger')
+            return render_template('auth/register.html', form=form)
+
+        role_name = form.role.data
+        role = Role.query.filter_by(role_name=role_name).first()
+
+        if not role:
+            flash('Invalid role selected.', 'danger')
+            return render_template('auth/register.html', form=form)
+
+        new_user = User(
+            email=email_data,
+            name=name_data,
+            role=role
+        )
+        new_user.set_password(password_data) # This is where the hashing happens
+
+        # DEBUGGING: Print hashed password after set_password call
+        print(f"DEBUG (Register): Hashed password in new_user object before commit: '{new_user.password}'")
+
+
+        db.session.add(new_user)
+        
+        try:
+            db.session.flush() # To get user_id for profile creation
+
+            if role_name == 'user':
+                student_id_data = form.student_id.data.strip()
+                if not student_id_data:
+                    flash('Student ID is required for regular user registration.', 'danger')
+                    db.session.rollback()
+                    return render_template('auth/register.html', form=form)
+                new_user_profile = UserProfile(user=new_user, student_id=student_id_data)
+                db.session.add(new_user_profile)
+            elif role_name == 'admin':
+                new_admin_profile = AdminProfile(admin=new_user)
+                db.session.add(new_admin_profile)
+
+            db.session.commit()
+            flash('Registration successful! Please log in.', 'success')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'An error occurred during registration. Please try again. ({e})', 'danger')
+            current_app.logger.error(f"Registration error for email {email_data}: {e}")
+            return render_template('auth/register.html', form=form)
+
+    return render_template('auth/register.html', form=form)
+
+
+@bp.route('/login', methods=['GET', 'POST'])
+def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
 
-    form = RegistrationForm()
-    
+    form = LoginForm()
     if form.validate_on_submit():
-        # Find or create role
-        role = Role.query.filter_by(role_name=form.role.data).first()
-        if not role:
-            role = Role(role_name=form.role.data, is_admin=(form.role.data == 'admin'))
-            db.session.add(role)
-            db.session.flush()  # Assigns role_id without committing
+        email_data = form.email.data.strip().lower()
+        password_data = form.password.data.strip()
 
-        # Create user
-        user = User(
-            email=form.email.data,
-            name=form.name.data,
-            role_id=role.role_id
-        )
-        user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.flush()  # Assigns user_id without committing
+        # DEBUGGING: Print submitted email and plain-text password for login attempt
+        print(f"DEBUG (Login): Attempting login for email: '{email_data}'")
+        print(f"DEBUG (Login): Submitted plain-text password: '{password_data}'")
 
-        # Create appropriate profile
-        if form.role.data == 'user':
-            if not form.student_id.data:
-                flash('Student ID is required for regular users.', 'danger')
-                return render_template('auth/register.html', form=form)
-            profile = UserProfile(user_id=user.user_id, student_id=form.student_id.data)
-            db.session.add(profile)
-        elif form.role.data == 'admin':
-            admin_profile = AdminProfile(admin_id=user.user_id)
-            db.session.add(admin_profile)
+        user = User.query.filter_by(email=email_data).first()
+        
+        if user:
+            # DEBUGGING: Print user found and stored hashed password
+            print(f"DEBUG (Login): User found in DB: {user.email}")
+            print(f"DEBUG (Login): Stored hashed password from DB: '{user.password}'")
+            
+            # DEBUGGING: Print result of the password check
+            password_check_result = user.check_password(password_data)
+            print(f"DEBUG (Login): Result of user.check_password(): {password_check_result}")
 
-        # Final commit
-        db.session.commit()
+            if password_check_result:
+                login_user(user, remember=form.remember.data)
+                next_page = request.args.get('next')
+                flash('Login successful!', 'success')
+                return redirect(next_page or url_for('main.dashboard'))
+            else:
+                flash('Login Unsuccessful. Please check email and password', 'danger')
+        else:
+            print(f"DEBUG (Login): User not found in DB for email: '{email_data}'")
+            flash('Login Unsuccessful. Please check email and password', 'danger')
+    return render_template('auth/login.html', form=form)
 
-        flash('Registration successful! Please login.', 'success')
-        return redirect(url_for('auth.login'))
-
-    return render_template('auth/register.html', form=form)
 
 @bp.route('/logout')
 def logout():

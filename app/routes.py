@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, current_
 from flask_login import login_required, current_user
 from datetime import datetime
 from werkzeug.utils import secure_filename
-from app import db
+from app import db # Keep only db here, moment is globally available via __init__.py
 from app.forms import ItemForm
 from app.models import Item
 import os
@@ -14,7 +14,9 @@ main = Blueprint('main', __name__)
 
 @main.route('/')
 def home():
-    return render_template('home.html')
+    # Remove 'moment=moment' from here.
+    # Flask-Moment makes its functions globally available in templates.
+    return render_template('home.html') #
 
 @main.route('/dashboard')
 @login_required
@@ -27,12 +29,10 @@ def dashboard():
 def add_item():
     form = ItemForm()
     if form.validate_on_submit():
-        # Ensure upload folder exists
         upload_folder = current_app.config['UPLOAD_FOLDER']
         if not os.path.exists(upload_folder):
             os.makedirs(upload_folder)
 
-        # Create new item with qr_code set to None initially
         new_item = Item(
             user_id=current_user.user_id,
             item_type=form.item_type.data,
@@ -44,7 +44,6 @@ def add_item():
             qr_code=None
         )
 
-        # Save uploaded image with unique name
         if form.image.data:
             filename = secure_filename(form.image.data.filename)
             unique_name = f"{current_user.user_id}_{datetime.now().timestamp()}_{filename}"
@@ -53,9 +52,8 @@ def add_item():
             new_item.image_path = unique_name
 
         db.session.add(new_item)
-        db.session.flush()  # Get new_item.item_id before commit
+        db.session.flush()
 
-        # Generate QR Code using item_id
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -76,7 +74,6 @@ def add_item():
         return redirect(url_for('main.dashboard'))
 
     return render_template('add_item.html', form=form)
-
 
 @main.route('/uploads/<filename>')
 def uploaded_file(filename):

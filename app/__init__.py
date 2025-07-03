@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
+from flask_moment import Moment # Import Flask-Moment
 from config import Config
 import os
 
@@ -9,6 +10,7 @@ import os
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
+moment = Moment() # Initialize Flask-Moment
 
 # Login configuration
 login_manager.login_view = 'auth.login'
@@ -36,6 +38,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    moment.init_app(app) # Initialize Flask-Moment with the app
 
     # Import other models to register with SQLAlchemy
     with app.app_context():
