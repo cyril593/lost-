@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Report Item - Lost & Found{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Report Lost or Found Item</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.item_type.label(class="form-label") }}
+                        {{ form.item_type(class="form-select") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {{ form.title(class="form-control", placeholder="Brief description of the item") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4", placeholder="Detailed description of the item") }}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.category.label(class="form-label") }}
+                            {{ form.category(class="form-control", placeholder="e.g., Wallet, Phone, Keys") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.location.label(class="form-label") }}
+                            {{ form.location(class="form-control", placeholder="Where did you lose/find it?") }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        {{ form.image.label(class="form-label") }}
+                        {{ form.image(class="form-control") }}
+                        <div class="form-text">Upload a clear photo of the item (optional)</div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Submit Report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

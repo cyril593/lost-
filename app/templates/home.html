@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Lost & Found{% endblock %}
+
+{% block content %}
+<div class="jumbotron bg-light p-5 rounded-lg">
+    <h1 class="display-4">Welcome to Lost & Found System</h1>
+    <p class="lead">Find your lost items or help others find theirs</p>
+    <hr class="my-4">
+    <p>Report lost items you're searching for or found items you've discovered</p>
+    <div class="mt-4">
+        {% if current_user.is_authenticated %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('main.dashboard') }}" role="button">Go to Dashboard</a>
+        {% else %}
+        <a class="btn btn-primary btn-lg me-2" href="{{ url_for('auth.login') }}" role="button">Login</a>
+        <a class="btn btn-outline-primary btn-lg" href="{{ url_for('auth.register') }}" role="button">Register</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Report Lost Items</h5>
+                <p class="card-text">Can't find your belongings? Report them here to increase your chances of recovery.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Report Found Items</h5>
+                <p class="card-text">Found something that doesn't belong to you? Help reunite it with its owner.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Secure System</h5>
+                <p class="card-text">Our verification process ensures items are returned to their rightful owners.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

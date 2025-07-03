@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Lost & Found{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Your Dashboard</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Your Items</h2>
+    <a href="{{ url_for('main.add_item') }}" class="btn btn-primary">
+        + Report New Item
+    </a>
+</div>
+
+<div class="row">
+    {% for item in items %}
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            {% if item.image_path %}
+            <img src="{{ url_for('main.uploaded_file', filename=item.image_path) }}" class="card-img-top" alt="{{ item.title }}">
+            {% endif %}
+            <div class="card-body">
+                <span class="badge bg-{% if item.item_type == 'lost' %}danger{% else %}success{% endif %} float-end">
+                    {{ item.item_type|capitalize }}
+                </span>
+                <h5 class="card-title">{{ item.title }}</h5>
+                <p class="card-text">{{ item.description }}</p>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item"><strong>Category:</strong> {{ item.category }}</li>
+                    <li class="list-group-item"><strong>Location:</strong> {{ item.location }}</li>
+                    <li class="list-group-item"><strong>Date:</strong> {{ item.item_date.strftime('%Y-%m-%d') }}</li>
+                    <li class="list-group-item">
+                        <span class="badge bg-{% if item.status == 'pending' %}warning{% elif item.status == 'resolved' %}success{% else %}info{% endif %}">
+                            {{ item.status|capitalize }}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-footer">
+                <a href="#" class="btn btn-sm btn-outline-primary">View Details</a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            You haven't reported any items yet.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
