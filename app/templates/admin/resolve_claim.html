@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Resolve Claim #{{ claim.claim_id }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Resolve Claim #{{ claim.claim_id }}</h4>
+                </div>
+                <div class="card-body">
+                    <h5>Claim Details</h5>
+                    <p><strong>Item:</strong> {{ claim.item.title }}</p>
+                    <p><strong>Claimer:</strong> {{ claim.user.name }} ({{ claim.user.email }})</p>
+                    <p><strong>Claim Date:</strong> {{ claim.claim_date.strftime('%Y-%m-%d') }}</p>
+                    <p><strong>Claim Reason:</strong> {{ claim.reason }}</p>
+                    
+                    {% if claim.proof_filename %}
+                    <p>
+                        <strong>Proof:</strong> 
+                        <a href="{{ url_for('main.uploaded_file', filename='proofs/' + claim.proof_filename) }}" target="_blank">
+                            View Proof Document
+                        </a>
+                    </p>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <h5 class="mt-4">Resolution Details</h5>
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.resolution_type.label(class="form-label") }}
+                            {{ form.resolution_type(class="form-select") }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.admin_notes.label(class="form-label") }}
+                            {{ form.admin_notes(class="form-control", rows=3, placeholder="Optional notes about the resolution") }}
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-success me-md-2">Approve Claim</button>
+                            <button type="button" class="btn btn-danger" 
+                                onclick="this.form.resolution_type.value='other'; this.form.submit()">
+                                Reject Claim
+                            </button>
+                            <a href="{{ url_for('admin.manage_claims') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

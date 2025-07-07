@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Review Claim Resolution - #{{ claim.claim_id }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Review Claim Resolution</h4>
+                </div>
+                <div class="card-body">
+                    <h5>Claim Details</h5>
+                    <p><strong>Item:</strong> {{ claim.item.title }}</p>
+                    <p><strong>Status:</strong> {{ claim.status|title }}</p>
+                    <p><strong>Resolution Type:</strong> {{ claim.resolution_type|title }}</p>
+                    <p><strong>Resolved On:</strong> {% if claim.resolved_at %}{{ claim.resolved_at.strftime('%Y-%m-%d') }}{% else %}N/A{% endif %}</p>
+                    
+                    {% if claim.admin_notes %}
+                    <p><strong>Admin Notes:</strong> {{ claim.admin_notes }}</p>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.rating.label(class="form-label") }}
+                            {{ form.rating(class="form-select") }}
+                            <div class="form-text">
+                                How would you rate your experience with this claim process?
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.comments.label(class="form-label") }}
+                            {{ form.comments(class="form-control", rows=3, 
+                                placeholder="Optional: Share details about your experience") }}
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary me-md-2">Submit Review</button>
+                            <a href="{{ url_for('main.item_detail', item_id=claim.item_id) }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

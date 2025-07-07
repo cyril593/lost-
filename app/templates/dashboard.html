@@ -3,49 +3,162 @@
 {% block title %}Dashboard - Lost & Found{% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Your Dashboard</h1>
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Your Items</h2>
-    <a href="{{ url_for('main.add_item') }}" class="btn btn-primary">
-        + Report New Item
-    </a>
-</div>
+<div class="container my-5">
+    <h2 class="mb-4">Your Dashboard</h2>
+    
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-primary h-100 shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="h6 text-uppercase">Total Lost Items</div>
+                            <div class="h2 mb-0">{{ summary.total_lost }}</div>
+                        </div>
+                        <i class="fas fa-search fa-3x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-success h-100 shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="h6 text-uppercase">Total Found Items</div>
+                            <div class="h2 mb-0">{{ summary.total_found }}</div>
+                        </div>
+                        <i class="fas fa-hand-holding fa-3x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-info h-100 shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="h6 text-uppercase">Pending Claims</div>
+                            <div class="h2 mb-0">{{ summary.pending_claims }}</div>
+                        </div>
+                        <i class="fas fa-hourglass-half fa-3x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-warning h-100 shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="h6 text-uppercase">Items to Pick Up</div>
+                            <div class="h2 mb-0">{{ summary.items_to_pickup }}</div>
+                        </div>
+                        <i class="fas fa-box-open fa-3x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div class="row">
-    {% for item in items %}
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            {% if item.image_path %}
-            <img src="{{ url_for('main.uploaded_file', filename=item.image_path) }}" class="card-img-top" alt="{{ item.title }}">
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Your Reported Items</h4>
+        </div>
+        <div class="card-body">
+            {% if reported_items %}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for item in reported_items %}
+                <div class="col">
+                    <div class="card h-100">
+                        {% if item.image_filename %}
+                            <img src="{{ url_for('main.uploaded_file', filename=item.image_filename) }}" class="card-img-top" alt="{{ item.title }}">
+                        {% else %}
+                            <img src="https://placehold.co/400x300/e0e0e0/555555?text=No+Image" class="card-img-top" alt="No Image Available">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title"><strong>{{ item.item_name }}</strong></h5>
+                            <p class="card-text">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
+                            <p class="text-muted"><strong>Type:</strong> {{ item.item_type.title() }}</p>
+                            <p class="text-muted"><strong>Status:</strong>
+                                <span class="badge bg-{% if item.status == 'found' %}success{% elif item.status == 'claimed' %}info{% elif item.status == 'returned' %}primary{% elif item.status == 'archived' %}secondary{% else %}warning{% endif %}">
+                                    {{ item.status.replace('_', ' ').title() }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="card-footer text-center">
+                            <a href="{{ url_for('main.item_detail', item_id=item.item_id) }}" class="btn btn-sm btn-primary">View Details</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info" role="alert">
+                You haven't reported any items yet. 
+                <a href="{{ url_for('main.report_item') }}" class="alert-link">Report one now!</a>
+            </div>
             {% endif %}
-            <div class="card-body">
-                <span class="badge bg-{% if item.item_type == 'lost' %}danger{% else %}success{% endif %} float-end">
-                    {{ item.item_type|capitalize }}
-                </span>
-                <h5 class="card-title">{{ item.title }}</h5>
-                <p class="card-text">{{ item.description }}</p>
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item"><strong>Category:</strong> {{ item.category }}</li>
-                    <li class="list-group-item"><strong>Location:</strong> {{ item.location }}</li>
-                    <li class="list-group-item"><strong>Date:</strong> {{ item.item_date.strftime('%Y-%m-%d') }}</li>
-                    <li class="list-group-item">
-                        <span class="badge bg-{% if item.status == 'pending' %}warning{% elif item.status == 'resolved' %}success{% else %}info{% endif %}">
-                            {{ item.status|capitalize }}
-                        </span>
-                    </li>
-                </ul>
-            </div>
-            <div class="card-footer">
-                <a href="#" class="btn btn-sm btn-outline-primary">View Details</a>
-            </div>
         </div>
     </div>
-    {% else %}
-    <div class="col-12">
-        <div class="alert alert-info">
-            You haven't reported any items yet.
+
+    <div class="card shadow mb-4">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0">Claims on Your Reported Items</h4>
+        </div>
+        <div class="card-body">
+            {% if claims_on_my_items %}
+            <div class="list-group">
+                {% for claim in claims_on_my_items %}
+                <a href="{{ url_for('main.item_detail', item_id=claim.item.item_id) }}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">Claim for "{{ claim.item.item_name }}"</h5>
+                        <small class="text-muted">{{ claim.reported_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </div>
+                    <p class="mb-1">Claimer: {{ claim.user.name }}</p>
+                    <small class="badge bg-{% if claim.status == 'pending' %}warning{% elif claim.status == 'approved' %}success{% elif claim.status == 'rejected' %}danger{% else %}info{% endif %}">
+                        {{ claim.status.replace('_', ' ').title() }}
+                    </small>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info" role="alert">
+                No claims have been made on your reported items yet.
+            </div>
+            {% endif %}
         </div>
     </div>
-    {% endfor %}
+
+    <div class="card shadow mb-4">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0">Your Submitted Claims</h4>
+        </div>
+        <div class="card-body">
+            {% if my_claims %}
+            <div class="list-group">
+                {% for claim in my_claims %}
+                <a href="{{ url_for('main.item_detail', item_id=claim.item.item_id) }}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">Claim for "{{ claim.item.item_name }}" (ID: {{ claim.item.item_id }})</h5>
+                        <small class="text-muted">{{ claim.reported_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </div>
+                    <p class="mb-1">Your Reason: {{ claim.reason|truncate(100) }}</p>
+                    <small class="badge bg-{% if claim.status == 'pending' %}warning{% elif claim.status == 'approved' %}success{% elif claim.status == 'rejected' %}danger{% else %}info{% endif %}">
+                        {{ claim.status.replace('_', ' ').title() }}
+                    </small>
+                    {% if claim.status == 'resolved' and not claim.reviews %}
+                        <a href="{{ url_for('main.review_claim', claim_id=claim.claim_id) }}" class="btn btn-sm btn-outline-primary ms-3">Review Resolution</a>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info" role="alert">
+                You haven't submitted any claims yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}

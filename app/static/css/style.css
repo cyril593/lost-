@@ -99,4 +99,8 @@ body {
     transform: translateY(-5px);
     box-shadow: 0 6px 20px rgba(13, 110, 253, 0.15);
 }
+.offcanvas {
+    border-right: 2px solid #dee2e6;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+}
 

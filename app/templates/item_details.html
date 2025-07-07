@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Item Details - {{ item.title }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">{{ item.title }}</h4>
+                    <span class="badge bg-{% if item.item_type == 'lost' %}danger{% else %}success{% endif %} fs-6">
+                        {{ item.item_type|capitalize }} Item
+                    </span>
+                </div>
+
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            {% if item.image_filename %}
+                                <img src="{{ url_for('main.uploaded_file', filename=item.image_filename) }}" class="img-fluid rounded mb-3" alt="{{ item.title }}">
+                            {% else %}
+                                <img src="https://placehold.co/400x300/e0e0e0/555555?text=No+Image" class="img-fluid rounded mb-3" alt="No Image Available">
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-7">
+                            <h5 class="card-subtitle mb-2 text-muted">{{ item.item_name }}</h5>
+                            <p><strong>Description:</strong> {{ item.description }}</p>
+                            <p><strong>Category:</strong> <span class="badge bg-secondary">{{ item.category|title }}</span></p>
+                            <p><strong>Location Found:</strong> {{ item.location_found }}</p>
+                            <p><strong>Date Found:</strong> {{ item.date_found.strftime('%Y-%m-%d') }}</p>
+                            <p><strong>Reported By:</strong> {{ item.user.name }} ({{ item.user.email }})</p>
+                            <p><strong>Reported On:</strong> {{ item.reported_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="badge bg-{% if item.status == 'found' %}success{% elif item.status == 'claimed' %}info{% elif item.status == 'returned' %}primary{% elif item.status == 'archived' %}secondary{% else %}warning{% endif %}">
+                                    {{ item.status.replace('_', ' ').title() }}
+                                </span>
+                            </p>
+
+                            <hr>
+
+                            <div class="d-flex flex-wrap gap-2">
+                                {% if item.user_id != current_user.user_id and item.status not in ['returned', 'archived'] %}
+                                    <a href="{{ url_for('main.make_claim', item_id=item.item_id) }}" class="btn btn-success">Claim Item</a>
+                                {% endif %}
+
+                                {% if item.status == 'claimed' and item.user_id == current_user.user_id %}
+                                    {% set claim = item.claims|selectattr('status', 'equalto', 'pending')|first %}
+                                    {% if claim %}
+                                        <a href="{{ url_for('main.claim_messages', claim_id=claim.claim_id) }}" class="btn btn-warning">Review Claim</a>
+                                    {% endif %}
+                                {% endif %}
+
+                                {% if item.qr_code %}
+                                    <a href="{{ url_for('main.view_qr_code', item_id=item.item_id) }}" class="btn btn-info">View QR Code</a>
+                                {% endif %}
+
+                                {% if item.user_id == current_user.user_id or current_user.is_admin %}
+                                    <a href="{{ url_for('main.edit_item', item_id=item.item_id) }}" class="btn btn-secondary">Edit Item</a>
+                                    <form action="{{ url_for('main.delete_item', item_id=item.item_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this item?');" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger">Delete Item</button>
+                                    </form>
+                                {% endif %}
+
+                                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">Back to Dashboard</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

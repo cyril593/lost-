@@ -1,144 +1,126 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Lost & Found System{% endblock title %}</title>
+{% extends "base.html" %}
 
-    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+{% block title %}Home - Lost & Found{% endblock %}
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+{% block styles %}
+<style>
+    body {
+        background: url("{{ url_for('static', filename='images/background.jpg') }}") no-repeat center center fixed;
+        background-size: cover;
+    }
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    .hero-section {
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 80px 0;
+        border-radius: 10px;
+        margin-top: 20px;
+    }
+    .hero-section h1 {
+        font-size: 3.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+    }
+    .hero-section p {
+        font-size: 1.25rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    .card {
+        background-color: rgba(255, 255, 255, 0.95);
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease-in-out;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    .card-title {
+        color: #007bff;
+    }
+    .modal-content {
+        border-radius: 15px;
+    }
+    .modal-header {
+        background-color: #007bff;
+        color: white;
+        border-top-left-radius: 15px;
+        border-top-right-radius: 15px;
+    }
+    .modal-footer {
+        border-bottom-left-radius: 15px;
+        border-bottom-right-radius: 15px;
+    }
+</style>
+{% endblock %}
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment-with-locales.min.js"></script>
-    <script>
-       
-        (function() {
-            if (typeof moment === 'function') {
-                moment.locale('en'); 
-            }
-        })();
-    </script>
-</head>
-<body class="d-flex flex-column min-vh-100">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('main.home') }}">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Lost & Found Logo" height="30" class="d-inline-block align-text-top me-2">
-                Lost & Found
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.home') }}">Home</a>
-                    </li>
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.add_item') }}">Report Item</a>
-                    </li>
-                    {% if current_user.is_admin %} {# Assuming you have an is_admin property on User model #}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin.audit_logs') }}">Audit Logs</a>
-                    </li>
-                    {% endif %}
-                    {% endif %}
-                </ul>
-                <ul class="navbar-nav ms-auto">
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <span class="nav-link text-white-50">Welcome, {{ current_user.name }}</span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-sm btn-outline-light ms-2" href="{{ url_for('auth.logout') }}">Logout</a>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                            <a class="nav-link btn btn-sm btn-outline-light me-2" href="{{ url_for('auth.login') }}">Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link btn btn-sm btn-light" href="{{ url_for('auth.register') }}">Register</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container mt-4 flex-grow-1">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        {% block content %}
-            <h1 class="mb-4">Welcome to the Strathmore University Lost & Found System</h1>
-            <p class="lead">
-                This system is designed to help students, staff, and visitors at Strathmore University efficiently report and retrieve lost and found items. Whether you've lost something valuable or found an item that belongs to someone else, our platform provides a streamlined process to reunite items with their rightful owners. You can report lost items, browse a list of found items, and get in touch with the administrators for assistance.
-            </p>
-        {% endblock content %}
+{% block content %}
+<div class="hero-section text-center text-white my-5">
+    <h1>Welcome to Lost & Found System</h1>
+    <p class="lead mt-3">Helping you reunite with your lost items or report found ones at Strathmore University.</p>
+    <div class="mt-4">
+        <a href="{{ url_for('main.report_item') }}" class="btn btn-primary btn-lg me-3">Report an Item</a>
+        <a href="{{ url_for('main.all_items') }}" class="btn btn-outline-light btn-lg">View All Items</a>
     </div>
+</div>
 
-    <footer class="footer mt-auto py-3 bg-dark text-white border-top"> <div class="container">
-            <div class="row">
-                <div class="col-md-12 text-center mb-3">
-                    <span class="text-muted">&copy; {{ moment().year }} Lost & Found System. All rights reserved.</span>
-                </div>
-            </div>
-            <div class="row mt-4">
-                <div class="col-md-6 text-start mb-3"> <h5 class="mb-3">Contact Information</h5>
-                    <ul class="list-unstyled">
-                        <li><i class="fas fa-envelope me-2"></i> Email: <a href="mailto:cyrilochako647@gmail.com" class="text-white">cyrilochako647@gmail.com</a></li>
-                        <li><i class="fas fa-phone-alt me-2"></i> Phone: <a href="tel:+254706388508" class="text-white">0706388508</a></li>
-                        <li><i class="fas fa-map-marker-alt me-2"></i> Location: Nairobi, Madaraka-Keri Road</li>
-                    </ul>
-                </div>
-                <div class="col-md-6 text-start mb-3"> <h5 class="mb-3">Terms and Conditions</h5>
-                    <p>Please review our terms and conditions for using the Lost & Found system.</p>
-                    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#termsModal">
-                        Read Terms and Conditions
-                    </button>
-                </div>
-            </div>
+<h3 class="mb-4 text-center">Recently Added Items</h3>
 
-            <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered modal-lg">
-                    <div class="modal-content bg-dark text-white"> <div class="modal-header border-bottom-0">
-                            <h5 class="modal-title" id="termsModalLabel">Terms and Conditions</h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button> </div>
-                        <div class="modal-body">
-                            <p><strong>1. Purpose:</strong> This Lost & Found system is provided to facilitate the return of lost items to their owners within Strathmore University.</p>
-                            <p><strong>2. Reporting Items:</strong> Users are encouraged to report both lost and found items accurately and promptly. Misrepresentation of information is prohibited.</p>
-                            <p><strong>3. Item Retrieval:</strong> To retrieve a lost item, users may be required to provide proof of ownership (e.g., description, unique identifiers, or purchase receipts).</p>
-                            <p><strong>4. Disclaimer:</strong> The university is not responsible for any lost or unrecovered items. While we strive to facilitate returns, we cannot guarantee the recovery of all items.</p>
-                            <p><strong>5. Privacy:</strong> Personal information collected through this system will be used solely for the purpose of reuniting lost items with their owners and will be handled in accordance with the university's privacy policy.</p>
-                            <p><strong>6. Abuse:</strong> Any misuse of the system, including but not limited to fraudulent claims or harassment, will result in disciplinary action.</p>
-                            <p><strong>7. Changes to Terms:</strong> The university reserves the right to modify these terms and conditions at any time. Users will be notified of significant changes.</p>
-                            <p>By using this system, you agree to abide by these terms and conditions.</p>
-                        </div>
-                        <div class="modal-footer border-top-0">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>
-                    </div>
+{% if items %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
+        {% for item in items[:6] %} {# Display only top 6 recent items #}
+        <div class="col">
+            <div class="card h-100 shadow">
+                {% if item.image_filename %}
+                    <img src="{{ url_for('main.uploaded_file', filename=item.image_filename) }}" class="card-img-top" alt="{{ item.title }}">
+                {% else %}
+                    <img src="https://placehold.co/400x300/e0e0e0/555555?text=No+Image" class="card-img-top" alt="No Image Available">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ item.title }}</h5>
+                    <p class="card-text">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
+                    <p class="text-muted"><strong>Type:</strong> {{ item.item_type.title() }}</p>
+                    <p class="text-muted"><strong>Category:</strong> {{ item.category.title() }}</p>
+                    <p class="text-muted"><strong>Location:</strong> {{ item.location_found }}</p>
+                    <p class="text-muted"><strong>Date:</strong> {{ item.date_found.strftime('%Y-%m-%d') }}</p>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="{{ url_for('main.item_detail', item_id=item.item_id) }}" class="btn btn-sm btn-primary">View Details</a>
                 </div>
             </div>
         </div>
-    </footer>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info text-center">No items have been reported recently. Be the first to report one!</div>
+{% endif %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<div class="text-center mt-5 mb-4">
+    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#termsModal">
+        Terms and Conditions
+    </button>
+</div>
+
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="termsModalLabel">Terms and Conditions of Use</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>1. Purpose:</strong> This Lost & Found system is provided to facilitate the return of lost items to their owners within Strathmore University.</p>
+                <p><strong>2. Reporting Items:</strong> Users are encouraged to report both lost and found items accurately and promptly. Misrepresentation of information is prohibited.</p>
+                <p><strong>3. Item Retrieval:</strong> To retrieve a lost item, users may be required to provide proof of ownership.</p>
+                <p><strong>4. Disclaimer:</strong> The university is not responsible for any lost or unrecovered items.</p>
+                <p><strong>5. Privacy:</strong> Personal information will be used solely to reunite owners with their property and is protected under the university's privacy policy.</p>
+                <p><strong>6. Abuse:</strong> Fraudulent claims or misuse of the system will result in disciplinary action.</p>
+                <p><strong>7. Terms Changes:</strong> The university reserves the right to modify these terms at any time.</p>
+                <p>By using this system, you agree to abide by these terms and conditions.</p>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

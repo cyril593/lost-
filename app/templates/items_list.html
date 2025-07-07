@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}All Items - Lost & Found{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="mb-4 text-center">All Reported Items</h2>
+
+    {% if items %}
+        <div class="row">
+            {% for item in items %}
+                <div class="col-md-4 mb-4">
+                    <div class="card shadow-sm h-100">
+                        {% if item.image_filename %}
+                            <img src="{{ url_for('main.uploaded_file', filename=item.image_filename) }}" class="card-img-top" alt="{{ item.title }}">
+                        {% else %}
+                            <img src="https://placehold.co/400x300/e0e0e0/555555?text=No+Image" class="card-img-top" alt="No Image Available">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ item.title }}</h5>
+                            <p class="card-text">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
+                            <p class="text-muted"><strong>Type:</strong> {{ item.item_type.title() }}</p>
+                            <p class="text-muted"><strong>Category:</strong> {{ item.category.title() }}</p>
+                            <p class="text-muted"><strong>Location:</strong> {{ item.location_found }}</p>
+                            <p class="text-muted"><strong>Date:</strong> {{ item.date_found.strftime('%Y-%m-%d') }}</p>
+                        </div>
+                        <div class="card-footer text-center">
+                            <a href="{{ url_for('main.item_detail', item_id=item.item_id) }}" class="btn btn-sm btn-primary">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center">No items have been reported yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

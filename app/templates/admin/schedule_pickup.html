@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule Pickup for {{ item.title }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Schedule Pickup for "{{ item.title }}"</h4>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <strong>Item:</strong> {{ item.title }} ({{ item.item_type|capitalize }})<br>
+                        <strong>Description:</strong> {{ item.description }}<br>
+                        <strong>Category:</strong> {{ item.category|capitalize }}<br>
+                        <strong>Current Status:</strong> <span class="badge bg-info">{{ item.status|capitalize }}</span>
+                    </p>
+
+                    <hr>
+
+                    <p>Initiate the pickup process for this item. You can optionally generate a QR code for secure pickup verification.</p>
+
+                    <form method="POST" action="{{ url_for('main.schedule_pickup', item_id=item.item_id) }}">
+                        <div class="mb-3">
+                            <label for="pickupDate" class="form-label">Pickup Date</label>
+                            <input type="date" class="form-control" id="pickupDate" name="pickup_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="claimantName" class="form-label">Claimant Name</label>
+                            <input type="text" class="form-control" id="claimantName" name="claimant_name" required>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="generateQrCheckbox" name="generate_qr" value="yes" checked>
+                            <label class="form-check-label" for="generateQrCheckbox">Generate QR Code for Pickup</label>
+                            <small class="form-text text-muted">A QR code can be used to verify the item during pickup.</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-success mt-3">Confirm Pickup & Generate QR (Optional)</button>
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary mt-3 ms-2">Cancel</a>
+                    </form>
+
+                    {% if item.qr_code %}
+                    <h5 class="mt-4">Generated QR Code:</h5>
+                    <div class="text-center">
+                        <img src="data:image/png;base64,{{ item.qr_code }}" alt="Item QR Code" class="img-fluid" style="max-width: 200px;">
+                        <p class="text-muted mt-2">This QR code is for pickup verification.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

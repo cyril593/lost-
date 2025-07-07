@@ -10,41 +10,188 @@
                 <h4 class="mb-0">Report Lost or Found Item</h4>
             </div>
             <div class="card-body">
-                <form method="POST" enctype="multipart/form-data">
+                <form method="POST" enctype="multipart/form-data" id="item-form">
                     {{ form.hidden_tag() }}
+                    {# Removed form.item_type as it's not defined in the provided ItemForm #}
                     <div class="mb-3">
-                        {{ form.item_type.label(class="form-label") }}
-                        {{ form.item_type(class="form-select") }}
-                    </div>
-                    <div class="mb-3">
-                        {{ form.title.label(class="form-label") }}
-                        {{ form.title(class="form-control", placeholder="Brief description of the item") }}
+                        {{ form.item_name.label(class="form-label") }}
+                        {{ form.item_name(class="form-control", placeholder="Brief description of the item") }}
+                        {% if form.item_name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.item_name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         {{ form.description.label(class="form-label") }}
                         {{ form.description(class="form-control", rows="4", placeholder="Detailed description of the item") }}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.description.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             {{ form.category.label(class="form-label") }}
-                            {{ form.category(class="form-control", placeholder="e.g., Wallet, Phone, Keys") }}
+                            {{ form.category(class="form-select", id="category") }} {# Changed to form-select for better styling of select fields #}
+                            {% if form.category.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.category.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                         <div class="col-md-6 mb-3">
-                            {{ form.location.label(class="form-label") }}
-                            {{ form.location(class="form-control", placeholder="Where did you lose/find it?") }}
+                            {{ form.location_found.label(class="form-label") }}
+                            {{ form.location_found(class="form-control", placeholder="e.g., Main Library, Cafeteria") }}
+                            {% if form.location_found.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.location_found.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
+                    </div>
+                    <div class="mb-3">
+                        {{ form.date_found.label(class="form-label") }}
+                        {# Although form.date_found is a StringField, type="date" provides a good UX. #}
+                        {{ form.date_found(class="form-control", type="date") }}
+                        {% if form.date_found.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.date_found.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         {{ form.image.label(class="form-label") }}
                         {{ form.image(class="form-control") }}
-                        <div class="form-text">Upload a clear photo of the item (optional)</div>
+                        <div class="form-text">Upload an image of the item. Max file size: 5MB.</div>
+                        {% if form.image.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.image.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Submit Report</button>
+                    <div class="mb-3 form-check">
+                        {{ form.auto_categorize_image(class="form-check-input", id="auto_categorize_image") }}
+                        <label class="form-check-label" for="auto_categorize_image">
+                            Auto-categorize from image (Uses AI to predict category)
+                        </label>
                     </div>
+                    <div id="prediction-result" class="mt-2"></div>
+                    
+                    <button type="submit" class="btn btn-primary">Report Item</button>
+                    <a href="{{ url_for('main.home') }}" class="btn btn-secondary">Cancel</a>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const autoCategorizeCheckbox = document.getElementById('auto_categorize_image');
+    const imageInput = document.getElementById('image');
+    const categorySelect = document.getElementById('category');
+    const predictionResult = document.getElementById('prediction-result');
+
+    // Initial state: If checkbox is checked on page load (e.g., due to previous submission error), disable category.
+    categorySelect.disabled = autoCategorizeCheckbox.checked;
+
+    autoCategorizeCheckbox.addEventListener('change', function() {
+        // If auto-categorize is checked, disable manual category selection
+        categorySelect.disabled = this.checked;
+        if (this.checked) {
+            // Trigger prediction if an image is already selected
+            if (imageInput.files && imageInput.files[0]) {
+                predictCategory(imageInput.files[0]);
+            } else {
+                predictionResult.innerHTML = `<span class="text-warning">Please upload an image for auto-categorization.</span>`;
+            }
+        } else {
+            // Re-enable and clear prediction message if unchecked
+            predictionResult.innerHTML = '';
+        }
+    });
+
+    imageInput.addEventListener('change', function() {
+        if (autoCategorizeCheckbox.checked && this.files && this.files[0]) {
+            predictCategory(this.files[0]);
+        } else {
+            predictionResult.innerHTML = ''; // Clear message if image changed and auto-categorize is off
+        }
+    });
+
+    function predictCategory(file) {
+        if (file) {
+            predictionResult.innerHTML = `<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Predicting category...</span>`;
+            const formData = new FormData();
+            formData.append('image', file);
+
+            fetch("{{ url_for('main.predict_category') }}", { // Use url_for directly, no need for tojson|safe as it's a string
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // Handle HTTP errors
+                    if (response.status === 413) { // Payload Too Large
+                        throw new Error('Image file is too large (max 5MB allowed).');
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    predictionResult.innerHTML = `<span class="text-danger">Error: ${data.error}</span>`;
+                } else {
+                    // Update category selection
+                    let foundCategory = false;
+                    for (let i = 0; i < categorySelect.options.length; i++) {
+                        if (categorySelect.options[i].value === data.category) {
+                            categorySelect.selectedIndex = i;
+                            foundCategory = true;
+                            break;
+                        }
+                    }
+                    if (!foundCategory) {
+                        // If predicted category is not in existing options, add it
+                        const newOption = document.createElement('option');
+                        newOption.value = data.category;
+                        newOption.textContent = data.category.charAt(0).toUpperCase() + data.category.slice(1); // Capitalize
+                        categorySelect.appendChild(newOption);
+                        categorySelect.selectedIndex = categorySelect.options.length - 1; // Select the newly added option
+                    }
+                    predictionResult.innerHTML = `
+                        <span class="text-success">
+                            <i class="fas fa-check-circle"></i> 
+                            Detected: ${data.category.charAt(0).toUpperCase() + data.category.slice(1)}
+                        </span>
+                    `;
+                }
+            })
+            .catch(error => {
+                predictionResult.innerHTML = `<span class="text-danger">Error: ${error.message}</span>`;
+            });
+        } else {
+            predictionResult.innerHTML = ''; // Clear message if no file selected
+        }
+    }
+});
+</script>
 {% endblock %}

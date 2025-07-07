@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Messages - Claim #{{ claim.claim_id }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Messages for Claim #{{ claim.claim_id }}</h4>
+                    <span class="badge bg-{{ 'success' if claim.status == 'approved' else 'danger' if claim.status == 'rejected' else 'warning' }}">
+                        {{ claim.status|replace('_', ' ')|title }}
+                    </span>
+                </div>
+                
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5>Claim Details</h5>
+                        <p><strong>Item:</strong> {{ claim.item.title }}</p>
+                        <p><strong>Claimer:</strong> {{ claim.user.name }}</p>
+                        <p><strong>Original Claim:</strong> {{ claim.reason }}</p>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="messages-container mb-4" style="max-height: 400px; overflow-y: auto;">
+                        {% for message in messages %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>{{ message.sender.name }}</strong>
+                                <small class="text-muted">{% if message.timestamp %}{{ message.timestamp.strftime('%Y-%m-%d %H:%M') }}{% else %}N/A{% endif %}</small>
+                            </div>
+                            <div class="p-3 rounded bg-light">
+                                {{ message.content }}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">No messages yet. Start the conversation!</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.message.label(class="form-label") }}
+                            {{ form.message(class="form-control", rows=3) }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                        <a href="{{ url_for('main.item_detail', item_id=claim.item_id) }}" class="btn btn-secondary">Back to Item</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-scroll to bottom of messages
+window.onload = function() {
+    const container = document.querySelector('.messages-container');
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
+};
+</script>
+{% endblock %}
