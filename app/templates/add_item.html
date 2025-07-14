@@ -1,197 +1,173 @@
 {% extends "base.html" %}
 
-{% block title %}Report Item - Lost & Found{% endblock %}
+{% block title %}Report New Item - Lost & Found{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">Report Lost or Found Item</h4>
-            </div>
-            <div class="card-body">
-                <form method="POST" enctype="multipart/form-data" id="item-form">
-                    {{ form.hidden_tag() }}
-                    {# Removed form.item_type as it's not defined in the provided ItemForm #}
-                    <div class="mb-3">
-                        {{ form.item_name.label(class="form-label") }}
-                        {{ form.item_name(class="form-control", placeholder="Brief description of the item") }}
-                        {% if form.item_name.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.item_name.errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    <div class="mb-3">
-                        {{ form.description.label(class="form-label") }}
-                        {{ form.description(class="form-control", rows="4", placeholder="Detailed description of the item") }}
-                        {% if form.description.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.description.errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            {{ form.category.label(class="form-label") }}
-                            {{ form.category(class="form-select", id="category") }} {# Changed to form-select for better styling of select fields #}
-                            {% if form.category.errors %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Report a Lost Item</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+
+                        <!-- Item Name -->
+                        <div class="mb-3">
+                            {{ form.item_name.label(class="form-label") }}
+                            {{ form.item_name(class="form-control" + (' is-invalid' if form.item_name.errors else ''), placeholder="e.g., Blue Backpack, iPhone 13", aria_describedby="itemNameHelp") }}
+                            {% if form.item_name.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {% for error in form.category.errors %}
-                                        {{ error }}
-                                    {% endfor %}
+                                    {{ form.item_name.errors|join(', ') }}
                                 </div>
                             {% endif %}
                         </div>
-                        <div class="col-md-6 mb-3">
-                            {{ form.location_found.label(class="form-label") }}
-                            {{ form.location_found(class="form-control", placeholder="e.g., Main Library, Cafeteria") }}
-                            {% if form.location_found.errors %}
+
+                        <!-- Item Type (Dropdown) -->
+                        <div class="mb-3">
+                            {{ form.item_type.label(class="form-label") }}
+                            {{ form.item_type(class="form-select" + (' is-invalid' if form.item_type.errors else '')) }}
+                            {% if form.item_type.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {% for error in form.location_found.errors %}
-                                        {{ error }}
-                                    {% endfor %}
+                                    {{ form.item_type.errors|join(', ') }}
                                 </div>
                             {% endif %}
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        {{ form.date_found.label(class="form-label") }}
-                        {# Although form.date_found is a StringField, type="date" provides a good UX. #}
-                        {{ form.date_found(class="form-control", type="date") }}
-                        {% if form.date_found.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.date_found.errors %}
-                                    {{ error }}
-                                {% endfor %}
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control" + (' is-invalid' if form.description.errors else ''), rows=4, placeholder="Include color, brand, unique marks, etc.") }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors|join(', ') }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Category and Location -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.category.label(class="form-label") }}
+                                {{ form.category(class="form-select" + (' is-invalid' if form.category.errors else '')) }}
+                                {% if form.category.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.category.errors|join(', ') }}
+                                    </div>
+                                {% endif %}
                             </div>
-                        {% endif %}
-                    </div>
-                    <div class="mb-3">
-                        {{ form.image.label(class="form-label") }}
-                        {{ form.image(class="form-control") }}
-                        <div class="form-text">Upload an image of the item. Max file size: 5MB.</div>
-                        {% if form.image.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.image.errors %}
-                                    {{ error }}
-                                {% endfor %}
+                            <div class="col-md-6 mb-3">
+                                {{ form.location_found.label(class="form-label") }}
+                                {{ form.location_found(class="form-control" + (' is-invalid' if form.location_found.errors else ''), placeholder="e.g., Library 3rd Floor, Cafeteria") }}
+                                {% if form.location_found.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.location_found.errors|join(', ') }}
+                                    </div>
+                                {% endif %}
                             </div>
-                        {% endif %}
-                    </div>
-                    <div class="mb-3 form-check">
-                        {{ form.auto_categorize_image(class="form-check-input", id="auto_categorize_image") }}
-                        <label class="form-check-label" for="auto_categorize_image">
-                            Auto-categorize from image (Uses AI to predict category)
-                        </label>
-                    </div>
-                    <div id="prediction-result" class="mt-2"></div>
-                    
-                    <button type="submit" class="btn btn-primary">Report Item</button>
-                    <a href="{{ url_for('main.home') }}" class="btn btn-secondary">Cancel</a>
-                </form>
+                        </div>
+
+                        <!-- Date Found -->
+                        <div class="mb-3">
+                            {{ form.date_found.label(class="form-label") }}
+                            {{ form.date_found(class="form-control" + (' is-invalid' if form.date_found.errors else ''), type="date") }}
+                            {% if form.date_found.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.date_found.errors|join(', ') }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Image Upload -->
+                        <div class="mb-3">
+                            {{ form.image.label(class="form-label") }}
+                            {{ form.image(class="form-control" + (' is-invalid' if form.image.errors else ''), accept=".jpg,.jpeg,.png,.gif", id="image") }}
+                            <div class="form-text">Optional: Upload an image of the item (Max: 5MB)</div>
+                            {% if form.image.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.image.errors|join(', ') }}
+                                </div>
+                            {% endif %}
+                            <div id="prediction-result" class="mt-2"></div>
+                            <div id="suggestion-results" class="mt-3"></div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">Report Item</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-{% endblock %}
-
-{% block scripts %}
+<!-- JS for Image Prediction -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const autoCategorizeCheckbox = document.getElementById('auto_categorize_image');
+document.addEventListener('DOMContentLoaded', () => {
     const imageInput = document.getElementById('image');
-    const categorySelect = document.getElementById('category');
     const predictionResult = document.getElementById('prediction-result');
+    const suggestionResultsDiv = document.getElementById('suggestion-results');
 
-    // Initial state: If checkbox is checked on page load (e.g., due to previous submission error), disable category.
-    categorySelect.disabled = autoCategorizeCheckbox.checked;
+    if (!imageInput) return;
 
-    autoCategorizeCheckbox.addEventListener('change', function() {
-        // If auto-categorize is checked, disable manual category selection
-        categorySelect.disabled = this.checked;
-        if (this.checked) {
-            // Trigger prediction if an image is already selected
-            if (imageInput.files && imageInput.files[0]) {
-                predictCategory(imageInput.files[0]);
-            } else {
-                predictionResult.innerHTML = `<span class="text-warning">Please upload an image for auto-categorization.</span>`;
-            }
-        } else {
-            // Re-enable and clear prediction message if unchecked
+    imageInput.addEventListener('change', () => {
+        const file = imageInput.files[0];
+        if (!file) {
             predictionResult.innerHTML = '';
+            suggestionResultsDiv.innerHTML = '';
+            return;
         }
+
+        predictionResult.innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Analyzing image...</span>';
+        suggestionResultsDiv.innerHTML = '';
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        fetch('/api/predict_category', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.ok ? res.json() : res.json().then(err => Promise.reject(err)))
+        .then(data => {
+            predictionResult.innerHTML = '';
+
+            if (data.matches?.length) {
+                const matchesHTML = data.matches.map(match => `
+                    <li class="list-group-item d-flex align-items-center">
+                        ${match.image_url ? `<img src="${match.image_url}" alt="${match.item_name || 'Matched Item'}" class="me-3" style="width: 50px; height: 50px; object-fit: cover;">` : ''}
+                        <div>
+                            <strong>${match.item_name}</strong> <small>(Similarity: ${match.similarity}%)</small><br>
+                            <small class="text-muted">${match.description}</small><br>
+                            <a href="/item/${match.item_id}" class="btn btn-sm btn-outline-primary mt-1" target="_blank">View Details</a>
+                        </div>
+                    </li>
+                `).join('');
+                suggestionResultsDiv.innerHTML = `
+                    <div class="alert alert-info">
+                        <strong>Potential Matches Found:</strong>
+                        <ul class="list-group mt-2">${matchesHTML}</ul>
+                    </div>
+                `;
+            } else if (data.predicted_category) {
+                suggestionResultsDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>Predicted Category:</strong> ${data.predicted_category}
+                    </div>
+                `;
+            } else {
+                suggestionResultsDiv.innerHTML = `<div class="alert alert-warning">No category prediction available.</div>`;
+            }
+        })
+        .catch(err => {
+            predictionResult.innerHTML = `<span class="text-danger">Error: ${err.message || 'Unable to analyze image'}</span>`;
+            suggestionResultsDiv.innerHTML = '';
+        });
     });
-
-    imageInput.addEventListener('change', function() {
-        if (autoCategorizeCheckbox.checked && this.files && this.files[0]) {
-            predictCategory(this.files[0]);
-        } else {
-            predictionResult.innerHTML = ''; // Clear message if image changed and auto-categorize is off
-        }
-    });
-
-    function predictCategory(file) {
-        if (file) {
-            predictionResult.innerHTML = `<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Predicting category...</span>`;
-            const formData = new FormData();
-            formData.append('image', file);
-
-            fetch("{{ url_for('main.predict_category') }}", { // Use url_for directly, no need for tojson|safe as it's a string
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    // Handle HTTP errors
-                    if (response.status === 413) { // Payload Too Large
-                        throw new Error('Image file is too large (max 5MB allowed).');
-                    }
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.error) {
-                    predictionResult.innerHTML = `<span class="text-danger">Error: ${data.error}</span>`;
-                } else {
-                    // Update category selection
-                    let foundCategory = false;
-                    for (let i = 0; i < categorySelect.options.length; i++) {
-                        if (categorySelect.options[i].value === data.category) {
-                            categorySelect.selectedIndex = i;
-                            foundCategory = true;
-                            break;
-                        }
-                    }
-                    if (!foundCategory) {
-                        // If predicted category is not in existing options, add it
-                        const newOption = document.createElement('option');
-                        newOption.value = data.category;
-                        newOption.textContent = data.category.charAt(0).toUpperCase() + data.category.slice(1); // Capitalize
-                        categorySelect.appendChild(newOption);
-                        categorySelect.selectedIndex = categorySelect.options.length - 1; // Select the newly added option
-                    }
-                    predictionResult.innerHTML = `
-                        <span class="text-success">
-                            <i class="fas fa-check-circle"></i> 
-                            Detected: ${data.category.charAt(0).toUpperCase() + data.category.slice(1)}
-                        </span>
-                    `;
-                }
-            })
-            .catch(error => {
-                predictionResult.innerHTML = `<span class="text-danger">Error: ${error.message}</span>`;
-            });
-        } else {
-            predictionResult.innerHTML = ''; // Clear message if no file selected
-        }
-    }
 });
 </script>
 {% endblock %}

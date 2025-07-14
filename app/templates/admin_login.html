@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Admin Login - Lost & Found{% endblock %}
@@ -15,11 +14,23 @@
                     {{ form.hidden_tag() }}
                     <div class="mb-3">
                         {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control", placeholder="Enter admin email") }}
+                        {# Add 'is-invalid' class if form.email has errors #}
+                        {{ form.email(class="form-control" + (' is-invalid' if form.email.errors else ''), placeholder="Enter admin email") }}
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.email.errors|join(', ') }}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control", placeholder="Enter password") }}
+                        {# Add 'is-invalid' class if form.password has errors #}
+                        {{ form.password(class="form-control" + (' is-invalid' if form.password.errors else ''), placeholder="Enter password") }}
+                        {% if form.password.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.password.errors|join(', ') }}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="mb-3 form-check">
                         {{ form.remember(class="form-check-input") }}

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 68be717acda1
+Revision ID: db1f83114310
 Revises: 
-Create Date: 2025-07-06 16:52:38.106456
+Create Date: 2025-07-14 12:11:26.943562
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
-revision = '68be717acda1'
+revision = 'db1f83114310'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -42,16 +42,15 @@ def upgrade():
     sa.Column('user_id', mysql.INTEGER(unsigned=True), autoincrement=True, nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
-    sa.Column('password_hash', sa.String(length=128), nullable=True),
     sa.Column('student_id', sa.String(length=20), nullable=True),
-    sa.Column('is_admin', sa.Boolean(), nullable=True),
-    sa.Column('registration_date', sa.DateTime(), nullable=True),
+    sa.Column('password_hash', sa.String(length=256), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('last_login', sa.DateTime(), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.Column('role_id', mysql.SMALLINT(unsigned=True), nullable=False),
     sa.ForeignKeyConstraint(['role_id'], ['roles.role_id'], ),
     sa.PrimaryKeyConstraint('user_id'),
     sa.UniqueConstraint('email'),
-    sa.UniqueConstraint('email', name='_email_uc'),
     sa.UniqueConstraint('student_id')
     )
     op.create_table('admin_audit_logs',
@@ -65,17 +64,18 @@ def upgrade():
     )
     op.create_table('items',
     sa.Column('item_id', mysql.INTEGER(unsigned=True), autoincrement=True, nullable=False),
-    sa.Column('user_id', mysql.INTEGER(unsigned=True), nullable=False),
     sa.Column('item_name', sa.String(length=100), nullable=False),
     sa.Column('description', sa.Text(), nullable=False),
     sa.Column('category', sa.String(length=50), nullable=False),
-    sa.Column('item_type', sa.Enum('lost', 'found', name='item_types'), nullable=False),
+    sa.Column('item_type', sa.String(length=10), nullable=False),
     sa.Column('location_found', sa.String(length=100), nullable=False),
     sa.Column('date_found', sa.Date(), nullable=False),
     sa.Column('image_filename', sa.String(length=128), nullable=True),
-    sa.Column('status', sa.Enum('pending', 'claimed', 'returned', 'archived', name='item_statuses'), nullable=False),
-    sa.Column('reported_at', sa.DateTime(), nullable=True),
-    sa.Column('qr_code_data', sa.Text(), nullable=True),
+    sa.Column('status', sa.String(length=20), nullable=False),
+    sa.Column('posted_at', sa.DateTime(), nullable=True),
+    sa.Column('image_features', sa.JSON(), nullable=True),
+    sa.Column('qr_code', sa.Text(), nullable=True),
+    sa.Column('user_id', mysql.INTEGER(unsigned=True), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
     sa.PrimaryKeyConstraint('item_id')
     )
@@ -83,26 +83,39 @@ def upgrade():
     sa.Column('claim_id', mysql.INTEGER(unsigned=True), autoincrement=True, nullable=False),
     sa.Column('item_id', mysql.INTEGER(unsigned=True), nullable=False),
     sa.Column('user_id', mysql.INTEGER(unsigned=True), nullable=False),
-    sa.Column('reason', sa.Text(), nullable=False),
+    sa.Column('claim_details', sa.Text(), nullable=False),
+    sa.Column('status', sa.String(length=20), nullable=False),
     sa.Column('reported_at', sa.DateTime(), nullable=True),
-    sa.Column('status', sa.Enum('pending', 'approved', 'rejected', 'resolved', name='claim_statuses'), nullable=False),
-    sa.Column('resolved_at', sa.DateTime(), nullable=True),
-    sa.Column('resolution_type', sa.Enum('returned_to_owner', 'kept', 'donated', 'other', name='resolution_types'), nullable=True),
+    sa.Column('finder_id', mysql.INTEGER(unsigned=True), nullable=False),
+    sa.Column('proof_filename', sa.String(length=128), nullable=True),
+    sa.Column('resolution_type', sa.String(length=50), nullable=True),
     sa.Column('admin_notes', sa.Text(), nullable=True),
+    sa.Column('resolved_by_admin_id', mysql.INTEGER(unsigned=True), nullable=True),
+    sa.Column('resolved_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['finder_id'], ['users.user_id'], ),
     sa.ForeignKeyConstraint(['item_id'], ['items.item_id'], ),
+    sa.ForeignKeyConstraint(['resolved_by_admin_id'], ['users.user_id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
     sa.PrimaryKeyConstraint('claim_id')
+    )
+    op.create_table('notifications',
+    sa.Column('notification_id', mysql.INTEGER(unsigned=True), autoincrement=True, nullable=False),
+    sa.Column('user_id', mysql.INTEGER(unsigned=True), nullable=False),
+    sa.Column('item_id', mysql.INTEGER(unsigned=True), nullable=True),
+    sa.Column('message', sa.Text(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.Column('is_read', sa.Boolean(), nullable=True),
+    sa.ForeignKeyConstraint(['item_id'], ['items.item_id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
+    sa.PrimaryKeyConstraint('notification_id')
     )
     op.create_table('claim_messages',
     sa.Column('message_id', mysql.INTEGER(unsigned=True), autoincrement=True, nullable=False),
     sa.Column('claim_id', mysql.INTEGER(unsigned=True), nullable=False),
     sa.Column('sender_id', mysql.INTEGER(unsigned=True), nullable=False),
-    sa.Column('receiver_id', mysql.INTEGER(unsigned=True), nullable=False),
-    sa.Column('content', sa.Text(), nullable=False),
+    sa.Column('message_text', sa.Text(), nullable=False),
     sa.Column('timestamp', sa.DateTime(), nullable=True),
-    sa.Column('is_read', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['claim_id'], ['claims.claim_id'], ),
-    sa.ForeignKeyConstraint(['receiver_id'], ['users.user_id'], ),
     sa.ForeignKeyConstraint(['sender_id'], ['users.user_id'], ),
     sa.PrimaryKeyConstraint('message_id')
     )
@@ -110,9 +123,9 @@ def upgrade():
     sa.Column('review_id', mysql.INTEGER(unsigned=True), autoincrement=True, nullable=False),
     sa.Column('claim_id', mysql.INTEGER(unsigned=True), nullable=False),
     sa.Column('reviewer_id', mysql.INTEGER(unsigned=True), nullable=False),
-    sa.Column('rating', mysql.SMALLINT(), nullable=False),
-    sa.Column('comments', sa.Text(), nullable=True),
-    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.Column('rating', mysql.SMALLINT(unsigned=True), nullable=True),
+    sa.Column('review_text', sa.Text(), nullable=True),
+    sa.Column('reviewed_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['claim_id'], ['claims.claim_id'], ),
     sa.ForeignKeyConstraint(['reviewer_id'], ['users.user_id'], ),
     sa.PrimaryKeyConstraint('review_id')
@@ -124,6 +137,7 @@ def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('claim_reviews')
     op.drop_table('claim_messages')
+    op.drop_table('notifications')
     op.drop_table('claims')
     op.drop_table('items')
     op.drop_table('admin_audit_logs')

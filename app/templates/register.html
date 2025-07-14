@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Lost & Found{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Register</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ form.name.label(class="form-label") }}
+                            {# Add 'is-invalid' class if form.name has errors #}
+                            {{ form.name(class="form-control" + (' is-invalid' if form.name.errors else '')) }}
+                            {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.name.errors|join(', ') }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {# Add 'is-invalid' class if form.email has errors #}
+                            {{ form.email(class="form-control" + (' is-invalid' if form.email.errors else '')) }}
+                            {% if form.email.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.email.errors|join(', ') }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {# Add 'is-invalid' class if form.password has errors #}
+                            {{ form.password(class="form-control" + (' is-invalid' if form.password.errors else '')) }}
+                            {% if form.password.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.password.errors|join(', ') }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.confirm_password.label(class="form-label") }}
+                            {# Add 'is-invalid' class if form.confirm_password has errors #}
+                            {{ form.confirm_password(class="form-control" + (' is-invalid' if form.confirm_password.errors else '')) }}
+                            {% if form.confirm_password.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.confirm_password.errors|join(', ') }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.student_id.label(class="form-label") }}
+                            {# Add 'is-invalid' class if form.student_id has errors #}
+                            {{ form.student_id(class="form-control" + (' is-invalid' if form.student_id.errors else '')) }}
+                            {% if form.student_id.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.student_id.errors|join(', ') }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Register</button>
+                    </form>
+                </div>
+                <div class="card-footer text-muted">
+                    Already have an account? <a href="{{ url_for('auth.login') }}">Login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

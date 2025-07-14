@@ -5,13 +5,14 @@
 {% block content %}
 <div class="container my-5">
     <h2 class="mb-4">Manage Claims</h2>
-    
+
     <div class="row mb-4">
+        {# These counts should ideally be passed from the backend for efficiency #}
         <div class="col-md-3">
             <div class="card text-white bg-primary">
                 <div class="card-body text-center">
                     <h5 class="card-title">Pending</h5>
-                    <p class="card-text h3">{{ claims|selectattr('status', 'equalto', 'pending')|list|length }}</p>
+                    <p class="card-text h3">{{ claim_counts.pending if claim_counts else (claims|selectattr('status', 'equalto', 'pending')|list|length) }}</p>
                 </div>
             </div>
         </div>
@@ -19,7 +20,7 @@
             <div class="card text-white bg-warning">
                 <div class="card-body text-center">
                     <h5 class="card-title">Under Review</h5>
-                    <p class="card-text h3">{{ claims|selectattr('status', 'equalto', 'under_review')|list|length }}</p>
+                    <p class="card-text h3">{{ claim_counts.under_review if claim_counts else (claims|selectattr('status', 'equalto', 'under_review')|list|length) }}</p>
                 </div>
             </div>
         </div>
@@ -27,7 +28,7 @@
             <div class="card text-white bg-success">
                 <div class="card-body text-center">
                     <h5 class="card-title">Approved</h5>
-                    <p class="card-text h3">{{ claims|selectattr('status', 'equalto', 'approved')|list|length }}</p>
+                    <p class="card-text h3">{{ claim_counts.approved if claim_counts else (claims|selectattr('status', 'equalto', 'approved')|list|length) }}</p>
                 </div>
             </div>
         </div>
@@ -35,19 +36,19 @@
             <div class="card text-white bg-danger">
                 <div class="card-body text-center">
                     <h5 class="card-title">Rejected</h5>
-                    <p class="card-text h3">{{ claims|selectattr('status', 'equalto', 'rejected')|list|length }}</p>
+                    <p class="card-text h3">{{ claim_counts.rejected if claim_counts else (claims|selectattr('status', 'equalto', 'rejected')|list|length) }}</p>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <div class="table-responsive">
         <table class="table table-hover">
             <thead class="table-light">
                 <tr>
                     <th>ID</th>
                     <th>Item</th>
-                    <th>Claimer</th>
+                    <th>Claimant</th>
                     <th>Status</th>
                     <th>Date</th>
                     <th>Messages</th>
@@ -60,39 +61,40 @@
                     <td>{{ claim.claim_id }}</td>
                     <td>
                         <a href="{{ url_for('main.item_detail', item_id=claim.item.item_id) }}">
-                            {{ claim.item.title }}
+                            {{ claim.item.item_name }}
                         </a>
                     </td>
-                    <td>{{ claim.user.name }}</td>
+                    <td>{{ claim.claimant.name }}</td>
                     <td>
                         <span class="badge bg-{{ 'success' if claim.status == 'approved' else 'danger' if claim.status == 'rejected' else 'warning' }}">
                             {{ claim.status|replace('_', ' ')|title }}
                         </span>
                     </td>
-                    <td>{{ claim.claim_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ claim.reported_at.strftime('%Y-%m-%d') }}</td>
                     <td>
                         <span class="badge bg-info">{{ claim.messages|length }}</span>
                     </td>
                     <td>
                         <div class="btn-group btn-group-sm">
-                            <a href="{{ url_for('main.claim_messages', claim_id=claim.claim_id) }}" 
+                            <a href="{{ url_for('main.claim_messages', claim_id=claim.claim_id) }}"
                                class="btn btn-primary" title="View Messages">
                                 <i class="fas fa-comments"></i>
                             </a>
-                            
+
                             {% if claim.status in ['pending', 'under_review'] %}
-                                <a href="{{ url_for('main.resolve_claim', claim_id=claim.claim_id) }}" 
+                                <a href="{{ url_for('admin.resolve_claim', claim_id=claim.claim_id) }}"
                                    class="btn btn-success" title="Resolve Claim">
                                     <i class="fas fa-gavel"></i>
                                 </a>
                             {% endif %}
-                            
-                            {% if claim.status in ['approved', 'rejected'] and not claim.reviews %}
-                                <a href="{{ url_for('main.review_claim', claim_id=claim.claim_id) }}" 
+
+                            {# Review button is for the claimant, not admin #}
+                            {# {% if claim.status in ['approved', 'rejected'] and not claim.reviews %}
+                                <a href="{{ url_for('main.review_claim', claim_id=claim.claim_id) }}"
                                    class="btn btn-info" title="Add Review">
                                     <i class="fas fa-star"></i>
                                 </a>
-                            {% endif %}
+                            {% endif %} #}
                         </div>
                     </td>
                 </tr>

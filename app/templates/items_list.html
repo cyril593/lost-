@@ -6,18 +6,19 @@
 <div class="container my-5">
     <h2 class="mb-4 text-center">All Reported Items</h2>
 
-    {% if items %}
+    {% if items.items %} {# Assuming 'items' is a pagination object #}
         <div class="row">
-            {% for item in items %}
+            {% for item in items.items %}
                 <div class="col-md-4 mb-4">
                     <div class="card shadow-sm h-100">
                         {% if item.image_filename %}
-                            <img src="{{ url_for('main.uploaded_file', filename=item.image_filename) }}" class="card-img-top" alt="{{ item.title }}">
+                            <img src="{{ url_for('main.uploaded_file', filename=item.image_filename) }}" class="card-img-top" alt="{{ item.item_name }}">
                         {% else %}
-                            <img src="https://placehold.co/400x300/e0e0e0/555555?text=No+Image" class="card-img-top" alt="No Image Available">
+                            {# Use a local placeholder image for consistency #}
+                            <img src="{{ url_for('static', filename='images/no_image_available.png') }}" class="card-img-top" alt="No Image Available">
                         {% endif %}
                         <div class="card-body">
-                            <h5 class="card-title">{{ item.title }}</h5>
+                            <h5 class="card-title">{{ item.item_name }}</h5>
                             <p class="card-text">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
                             <p class="text-muted"><strong>Type:</strong> {{ item.item_type.title() }}</p>
                             <p class="text-muted"><strong>Category:</strong> {{ item.category.title() }}</p>
@@ -31,6 +32,40 @@
                 </div>
             {% endfor %}
         </div>
+
+        <nav aria-label="Items pagination">
+            <ul class="pagination justify-content-center">
+                {% if items.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.all_items', page=items.prev_num) }}">Previous</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1">Previous</a>
+                    </li>
+                {% endif %}
+
+                {% for page_num in items.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == items.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('main.all_items', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if items.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.all_items', page=items.next_num) }}">Next</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
     {% else %}
         <div class="alert alert-info text-center">No items have been reported yet.</div>
     {% endif %}

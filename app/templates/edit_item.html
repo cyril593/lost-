@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Item - {{ item.item_name }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Edit Item: {{ item.item_name }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ form.item_name.label(class="form-label") }}
+                            {# Add 'is-invalid' class if form.item_name has errors #}
+                            {{ form.item_name(class="form-control" + (' is-invalid' if form.item_name.errors else '')) }}
+                            {% if form.item_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.item_name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Item Type (Radio Buttons) -->
+                        <div class="mb-3">
+                            {{ form.item_type.label(class="form-label") }}
+                            <div class="d-flex gap-4 flex-wrap {% if form.item_type.errors %}is-invalid-checkbox-group{% endif %}">
+                                {% for subfield in form.item_type %}
+                                    <div class="form-check">
+                                        {{ subfield(class="form-check-input") }}
+                                        <label class="form-check-label" for="{{ subfield.id }}">
+                                            {{ subfield.label.text }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.item_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.item_type.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {# Add 'is-invalid' class if form.description has errors #}
+                            {{ form.description(class="form-control" + (' is-invalid' if form.description.errors else ''), rows="4") }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.category.label(class="form-label") }}
+                                {# Add 'is-invalid' class if form.category has errors #}
+                                {{ form.category(class="form-select" + (' is-invalid' if form.category.errors else '')) }}
+                                {% if form.category.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.category.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.location_found.label(class="form-label") }}
+                                {# Add 'is-invalid' class if form.location_found has errors #}
+                                {{ form.location_found(class="form-control" + (' is-invalid' if form.location_found.errors else '')) }}
+                                {% if form.location_found.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.location_found.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.date_found.label(class="form-label") }}
+                            {# Add 'is-invalid' class if form.date_found has errors #}
+                            {{ form.date_found(class="form-control" + (' is-invalid' if form.date_found.errors else ''), type="date") }}
+                            {% if form.date_found.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.date_found.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.image.label(class="form-label") }}
+                            {# Added .gif to accept attribute for consistency with add_item.html #}
+                            {{ form.image(class="form-control" + (' is-invalid' if form.image.errors else ''), accept=".jpg,.jpeg,.png,.gif") }}
+                            <div class="form-text">Current image:
+                                {% if item.image_filename %}
+                                    <a href="{{ url_for('main.uploaded_file', filename=item.image_filename) }}" target="_blank">
+                                        {{ item.image_filename }}
+                                    </a>
+                                {% else %}
+                                    None
+                                {% endif %}
+                            </div>
+                            {% if form.image.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.image.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">Update Item</button>
+                            <a href="{{ url_for('main.item_detail', item_id=item.item_id) }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

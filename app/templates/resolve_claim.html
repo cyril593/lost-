@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Resolve Claim #{{ claim.claim_id }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Resolve Claim #{{ claim.claim_id }}</h4>
+                </div>
+                <div class="card-body">
+                    <h5>Claim Details</h5>
+                    <p><strong>Item:</strong> {{ claim.item.item_name }}</p>
+                    <p><strong>Claimant:</strong> {{ claim.claimant.name }} ({{ claim.claimant.email }})</p>
+                    <p><strong>Claim Date:</strong> {{ claim.reported_at.strftime('%Y-%m-%d') }}</p>
+                    <p><strong>Claim Reason:</strong> {{ claim.claim_details }}</p>
+
+                    {% if claim.proof_filename %}
+                    <p>
+                        <strong>Proof:</strong>
+                        {# Ensure 'uploaded_proof' route is secure and checks permissions #}
+                        <a href="{{ url_for('main.uploaded_proof', filename=claim.proof_filename) }}" target="_blank">
+                            View Proof Document
+                        </a>
+                    </p>
+                    {% endif %}
+
+                    <hr>
+
+                    <h5 class="mt-4">Resolution Details</h5>
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ form.resolution_type.label(class="form-label") }}
+                            {# Add 'is-invalid' class if form.resolution_type has errors #}
+                            {{ form.resolution_type(class="form-select" + (' is-invalid' if form.resolution_type.errors else '')) }}
+                            {% if form.resolution_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.resolution_type.errors|join(', ') }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.admin_notes.label(class="form-label") }}
+                            {# Add 'is-invalid' class if form.admin_notes has errors #}
+                            {{ form.admin_notes(class="form-control" + (' is-invalid' if form.admin_notes.errors else ''), rows=3, placeholder="Optional notes about the resolution") }}
+                            {% if form.admin_notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.admin_notes.errors|join(', ') }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-success me-md-2">Approve Claim</button>
+                            {# Use a hidden input to set resolution_type for rejection #}
+                            <button type="button" class="btn btn-danger"
+                                onclick="document.getElementById('resolution_type_hidden').value='rejected'; this.form.submit()">
+                                Reject Claim
+                            </button>
+                            <input type="hidden" name="resolution_type" id="resolution_type_hidden" value=""> {# Hidden input for rejection #}
+                            <a href="{{ url_for('admin.manage_claims') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

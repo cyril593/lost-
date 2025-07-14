@@ -34,80 +34,72 @@
     .card:hover {
         transform: translateY(-5px);
     }
-    .card-title {
-        color: #007bff;
-    }
-    .modal-content {
-        border-radius: 15px;
-    }
-    .modal-header {
-        background-color: #007bff;
-        color: white;
-        border-top-left-radius: 15px;
-        border-top-right-radius: 15px;
-    }
-    .modal-footer {
-        border-bottom-left-radius: 15px;
-        border-bottom-right-radius: 15px;
-    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="hero-section text-center text-white my-5">
-    <h1>Welcome to Lost & Found System</h1>
-    <p class="lead mt-3">Helping you reunite with your lost items or report found ones at Strathmore University.</p>
+<div class="container text-center text-white hero-section">
+    <h1>Welcome to Lost & Found Strathmore University </h1>
+    <p class="lead">Helping you reunite with your lost belongings or report items you've found on campus.</p>
     <div class="mt-4">
-        <a href="{{ url_for('main.report_item') }}" class="btn btn-primary btn-lg me-3">Report an Item</a>
-        <a href="{{ url_for('main.all_items') }}" class="btn btn-outline-light btn-lg">View All Items</a>
+        <a href="{{ url_for('main.add_item') }}" class="btn btn-success btn-lg mx-2 mb-2"><i class="fas fa-plus-circle me-2"></i>Report Item</a>
+        <a href="{{ url_for('main.all_items') }}" class="btn btn-info btn-lg mx-2 mb-2"><i class="fas fa-eye me-2"></i>View All Items</a>
     </div>
 </div>
 
-<h3 class="mb-4 text-center">Recently Added Items</h3>
+<div class="container my-5">
+    <h2 class="mb-4 text-center text-white">Recently Reported Items</h2>
 
-{% if items %}
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
-        {% for item in items[:6] %} {# Display only top 6 recent items #}
-        <div class="col">
-            <div class="card h-100 shadow">
-                {% if item.image_filename %}
-                    <img src="{{ url_for('main.uploaded_file', filename=item.image_filename) }}" class="card-img-top" alt="{{ item.title }}">
-                {% else %}
-                    <img src="https://placehold.co/400x300/e0e0e0/555555?text=No+Image" class="card-img-top" alt="No Image Available">
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ item.title }}</h5>
-                    <p class="card-text">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
-                    <p class="text-muted"><strong>Type:</strong> {{ item.item_type.title() }}</p>
-                    <p class="text-muted"><strong>Category:</strong> {{ item.category.title() }}</p>
-                    <p class="text-muted"><strong>Location:</strong> {{ item.location_found }}</p>
-                    <p class="text-muted"><strong>Date:</strong> {{ item.date_found.strftime('%Y-%m-%d') }}</p>
+    {% if recently_added_items %}
+        <div class="row">
+            {% for item in recently_added_items %}
+                <div class="col-md-4 mb-4">
+                    <div class="card shadow-sm h-100">
+                        {% if item.image_filename %}
+                            <img src="{{ url_for('main.uploaded_file', filename=item.image_filename) }}" class="card-img-top" alt="{{ item.item_name }}">
+                        {% else %}
+                            {# Use a local placeholder image for better control #}
+                            <img src="{{ url_for('static', filename='images/no_image_available.png') }}" class="card-img-top" alt="No Image Available">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ item.item_name }}</h5>
+                            <p class="card-text">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
+                            <p class="text-muted"><strong>Type:</strong> {{ item.item_type.title() }}</p>
+                            <p class="text-muted"><strong>Category:</strong> {{ item.category.title() }}</p>
+                            <p class="text-muted"><strong>Location:</strong> {{ item.location_found }}</p>
+                            <p class="text-muted"><strong>Date:</strong> {{ item.date_found.strftime('%Y-%m-%d') }}</p>
+                        </div>
+                        <div class="card-footer text-center">
+                            <a href="{{ url_for('main.item_detail', item_id=item.item_id) }}" class="btn btn-sm btn-primary">View Details</a>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-footer text-center">
-                    <a href="{{ url_for('main.item_detail', item_id=item.item_id) }}" class="btn btn-sm btn-primary">View Details</a>
-                </div>
-            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
-{% else %}
-    <div class="alert alert-info text-center">No items have been reported recently. Be the first to report one!</div>
-{% endif %}
+    {% else %}
+        <div class="alert alert-info text-center">No items have been reported yet.</div>
+    {% endif %}
 
-<div class="text-center mt-5 mb-4">
-    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#termsModal">
-        Terms and Conditions
-    </button>
+    <div class="text-center mt-4">
+        <a href="{{ url_for('main.all_items') }}" class="btn btn-light btn-lg">View All Reported Items</a>
+    </div>
+
+    <div class="text-center mt-5">
+        <button type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#termsModal">
+            Terms and Conditions
+        </button>
+    </div>
 </div>
 
 <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="termsModalLabel">Terms and Conditions of Use</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="termsModalLabel">Terms and Conditions</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                {# For dynamic content, consider fetching this from an API or rendering from a markdown file #}
                 <p><strong>1. Purpose:</strong> This Lost & Found system is provided to facilitate the return of lost items to their owners within Strathmore University.</p>
                 <p><strong>2. Reporting Items:</strong> Users are encouraged to report both lost and found items accurately and promptly. Misrepresentation of information is prohibited.</p>
                 <p><strong>3. Item Retrieval:</strong> To retrieve a lost item, users may be required to provide proof of ownership.</p>

@@ -14,11 +14,23 @@
                     {{ form.hidden_tag() }}
                     <div class="mb-3">
                         {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control", placeholder="Enter your email") }}
+                        {# Add 'is-invalid' class if form.email has errors #}
+                        {{ form.email(class="form-control" + (' is-invalid' if form.email.errors else ''), placeholder="Enter your email") }}
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.email.errors|join(', ') }}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control", placeholder="Enter your password") }}
+                        {# Add 'is-invalid' class if form.password has errors #}
+                        {{ form.password(class="form-control" + (' is-invalid' if form.password.errors else ''), placeholder="Enter your password") }}
+                        {% if form.password.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.password.errors|join(', ') }}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="mb-3 form-check">
                         {{ form.remember(class="form-check-input") }}

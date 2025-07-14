@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users - Lost & Found{% endblock %}
+
+{% block content %}
+<h1>User Management</h1>
+<table class="table table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.user_id }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.name }}</td>
+            <td>{{ user.role.role_name }}</td>
+            <td>
+                <span class="badge bg-{% if user.is_active %}success{% else %}danger{% endif %}">
+                    {{ 'Active' if user.is_active else 'Inactive' }}
+                </span>
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm" role="group">
+                    {% if not user.is_active %}
+                    <form action="{{ url_for('admin.activate_user', user_id=user.user_id) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-success" title="Activate User">
+                            <i class="fas fa-check"></i> Activate
+                        </button>
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('admin.deactivate_user', user_id=user.user_id) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-warning" title="Deactivate User">
+                            <i class="fas fa-ban"></i> Deactivate
+                        </button>
+                    </form>
+                    {% endif %}
+                    <form action="{{ url_for('admin.delete_user', user_id=user.user_id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to permanently delete this user? This action cannot be undone.');">
+                        <button type="submit" class="btn btn-danger" title="Delete User">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </form>
+                    {# Add a button/link to assign roles, possibly opening a modal #}
+                    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#assignRoleModal" data-user-id="{{ user.user_id }}" data-user-name="{{ user.name }}" data-current-role-id="{{ user.role.role_id }}" title="Assign Role">
+                        <i class="fas fa-user-tag"></i> Role
+                    </button>
+                </div>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6" class="text-center">No users found</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Assign Role Modal -->
+<div class="modal fade" id="assignRoleModal" tabindex="-1" aria-labelledby="assignRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="assignRoleModalLabel">Assign Role to <span id="modalUserName"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="assignRoleForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="user_id" id="modalUserId">
+                    <div class="mb-3">
+                        <label for="roleSelect" class="form-label">Select New Role</label>
+                        <select class="form-select" id="roleSelect" name="role_id" required>
+                            {% for role in roles %}
+                                <option value="{{ role.role_id }}">{{ role.role_name|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var assignRoleModal = document.getElementById('assignRoleModal');
+    assignRoleModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget; // Button that triggered the modal
+        var userId = button.getAttribute('data-user-id');
+        var userName = button.getAttribute('data-user-name');
+        var currentRoleId = button.getAttribute('data-current-role-id');
+
+        var modalTitle = assignRoleModal.querySelector('#modalUserName');
+        var modalUserIdInput = assignRoleModal.querySelector('#modalUserId');
+        var roleSelect = assignRoleModal.querySelector('#roleSelect');
+        var assignRoleForm = assignRoleModal.querySelector('#assignRoleForm');
+
+        modalTitle.textContent = userName;
+        modalUserIdInput.value = userId;
+        roleSelect.value = currentRoleId; // Set current role as selected
+
+        // Update the form action dynamically
+        // Ensure your backend route for assign_role expects user_id in the URL or form data
+        assignRoleForm.action = "{{ url_for('admin.assign_role', user_id=0) }}".replace('0', userId);
+    });
+});
+</script>
+{% endblock %}

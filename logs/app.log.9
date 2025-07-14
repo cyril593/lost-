@@ -1,0 +1,127 @@
+2025-07-13 11:14:18,855 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:35]
+2025-07-13 11:21:25,805 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:35]
+2025-07-13 11:26:29,444 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:35]
+2025-07-13 11:48:01,751 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:32]
+2025-07-13 11:48:21,563 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:32]
+2025-07-13 11:48:35,477 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:32]
+2025-07-13 11:48:51,886 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:32]
+2025-07-13 11:49:14,561 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:32]
+2025-07-13 11:49:26,115 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:32]
+2025-07-13 11:49:37,613 ERROR: Exception on / [GET] [in C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py:875]
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\USER\migrations\lost-\app\routes.py", line 67, in home
+    return render_template('home.html')
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "C:\Users\USER\migrations\lost-\app\templates\home.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "C:\Users\USER\migrations\lost-\app\templates\base.html", line 91, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\migrations\lost-\app\templates\home.html", line 45, in block 'content'
+    <a href="{{ url_for('main.report_item') }}" class="btn btn-success btn-lg mx-2 mb-2"><i class="fas fa-plus-circle me-2"></i>Report Item</a>
+    ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+        endpoint,
+    ...<3 lines>...
+        force_external=_external,
+    )
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'main.report_item'. Did you mean 'main.edit_item' instead?
+2025-07-13 11:51:08,120 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:32]
+2025-07-13 11:59:10,657 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:32]
+2025-07-13 11:59:24,865 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:32]
+2025-07-13 11:59:33,653 ERROR: Exception on / [GET] [in C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py:875]
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\USER\migrations\lost-\app\routes.py", line 67, in home
+    return render_template('home.html')
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "C:\Users\USER\migrations\lost-\app\templates\home.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "C:\Users\USER\migrations\lost-\app\templates\base.html", line 91, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\migrations\lost-\app\templates\home.html", line 46, in block 'content'
+    <a href="{{ url_for('main.all_items') }}" class="btn btn-info btn-lg mx-2 mb-2"><i class="fas fa-eye me-2"></i>View All Items</a>
+    ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+        endpoint,
+    ...<3 lines>...
+        force_external=_external,
+    )
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'main.all_items'. Did you mean 'main.add_item' instead?
+2025-07-13 12:39:38,642 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:32]
+2025-07-13 12:40:22,134 INFO: Lost and Found App startup [in C:\Users\USER\migrations\lost-\app\__init__.py:32]
+2025-07-13 12:40:43,137 ERROR: Exception on /items [GET] [in C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py:875]
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\base.py", line 2193, in _entity_namespace_key
+    return getattr(ns, key)  # type: ignore
+AttributeError: type object 'Item' has no attribute 'is_active'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\USER\migrations\lost-\app\routes.py", line 190, in all_items
+    items_pagination = Item.query.filter_by(is_active=True)\
+                       ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\query.py", line 1992, in filter_by
+    _entity_namespace_key(from_entity, key) == value
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\base.py", line 2195, in _entity_namespace_key
+    raise exc.InvalidRequestError(
+        'Entity namespace for "%s" has no property "%s"' % (entity, key)
+    ) from err
+sqlalchemy.exc.InvalidRequestError: Entity namespace for "items" has no property "is_active"

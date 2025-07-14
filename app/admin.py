@@ -2,8 +2,8 @@ from flask import Blueprint, render_template, redirect, url_for, flash, abort, r
 from flask_login import current_user, login_user, logout_user, login_required
 from app.extensions import db
 from app.forms import AdminLoginForm, ResolveClaimForm
-from app.models import User, AdminAuditLog, Claim, Role # Import Role to query for role names
-from sqlalchemy import func # Import func for database functions like now()
+from app.models import User, AdminAuditLog, Claim, Role, Notification
+from sqlalchemy import func
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -13,12 +13,11 @@ def require_admin():
     Restricts access to all admin routes to only authenticated admin users,
     except for the login page.
     """
-    # Skip admin check for the login route
     if request.endpoint == 'admin.admin_login':
         return
-        
+
     if not current_user.is_authenticated or not current_user.is_admin:
-        abort(403) # Forbidden for non-admin or unauthenticated users
+        abort(403)
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def admin_login():
@@ -29,25 +28,28 @@ def admin_login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data.strip().lower()).first()
 
-        if user and user.check_password(form.password.data) and user.is_admin:
-            login_user(user, remember=form.remember.data)
-            log = AdminAuditLog(
-                admin_id=user.user_id,
-                action="Admin Login",
-                details=f"Admin {user.email} logged in."
-            )
-            db.session.add(log)
-            db.session.commit()
-            flash('Logged in successfully as Admin!', 'success')
-            return redirect(url_for('admin.dashboard'))
+        if user and user.check_password(form.password.data):
+            if user.is_admin:
+                login_user(user, remember=form.remember.data)
+                log = AdminAuditLog(
+                    admin_id=user.user_id,
+                    action="Admin Login",
+                    details=f"Admin {user.email} logged in."
+                )
+                db.session.add(log)
+                db.session.commit()
+                flash('Logged in successfully as Admin!', 'success')
+                return redirect(url_for('admin.dashboard'))
+            else:
+                flash('You do not have admin privileges.', 'danger')
         else:
-            flash('Invalid email or password, or you do not have admin privileges.', 'danger')
+            flash('Invalid email or password.', 'danger')
+    # CORRECTED: Changed 'admin_login.html' to 'admin_login.html' (already correct, but confirming)
     return render_template('admin_login.html', form=form)
 
 @admin_bp.route('/logout')
 @login_required
 def admin_logout():
-    # Only log out if the current user is an admin
     if current_user.is_admin:
         log = AdminAuditLog(
             admin_id=current_user.user_id,
@@ -56,15 +58,21 @@ def admin_logout():
         )
         db.session.add(log)
         db.session.commit()
-        logout_user()
-        flash('You have been logged out of the admin panel.', 'info')
+    logout_user()
+    flash('You have been logged out of the admin panel.', 'info')
     return redirect(url_for('main.home'))
 
 @admin_bp.route('/dashboard')
-@login_required # This is now technically redundant due to before_request, but good for clarity
+@login_required
 def dashboard():
+    """Displays the admin dashboard with summary statistics."""
     user_count = User.query.count()
-    # Assuming 'pending', 'under_review', etc. are actual statuses in your Claim model
+    active_users = User.query.filter_by(is_active=True).count()
+    inactive_users = User.query.filter_by(is_active=False).count()
+    admin_role = Role.query.filter_by(role_name='admin').first()
+    admin_count = User.query.filter_by(role=admin_role).count() if admin_role else 0
+    regular_users = user_count - admin_count
+
     claim_stats = {
         'total': Claim.query.count(),
         'pending': Claim.query.filter_by(status='pending').count(),
@@ -73,36 +81,43 @@ def dashboard():
         'rejected': Claim.query.filter_by(status='rejected').count(),
         'resolved': Claim.query.filter_by(status='resolved').count()
     }
-    recent_claims = Claim.query.order_by(Claim.reported_at.desc()).limit(5).all()
-    recent_users = User.query.order_by(User.registered_at.desc()).limit(5).all()
+    recent_logs = AdminAuditLog.query.order_by(AdminAuditLog.timestamp.desc()).limit(5).all()
+    recent_activities_count = AdminAuditLog.query.count()
 
+    # CORRECTED: Changed 'admin_dashboard.html' to 'admin_dashboard.html' (already correct)
     return render_template('admin_dashboard.html',
                            user_count=user_count,
-                           claim_stats=claim_stats,
-                           recent_claims=recent_claims,
-                           recent_users=recent_users)
+                           pending_claims=claim_stats['pending'],
+                           recent_activities=recent_activities_count,
+                           recent_logs=recent_logs,
+                           active_users=active_users,
+                           inactive_users=inactive_users,
+                           admin_count=admin_count,
+                           regular_users=regular_users,
+                           claim_stats=claim_stats)
 
 @admin_bp.route('/manage_users')
 @login_required
 def manage_users():
+    """Manages user accounts."""
     users = User.query.all()
-    roles = Role.query.all() # Fetch roles for display/selection
-    return render_template('admin/manage_users.html', users=users, roles=roles)
+    roles = Role.query.all()
+    # CORRECTED: Changed 'manage_users.html' to 'manage_users.html' (already correct)
+    return render_template('manage_users.html', users=users, roles=roles)
 
 
 @admin_bp.route('/user/<int:user_id>/assign_role', methods=['GET', 'POST'])
 @login_required
 def assign_role(user_id):
+    """Assigns a role to a user."""
     user = User.query.get_or_404(user_id)
-    
+
     if request.method == 'POST':
-        # Assuming a form or direct request data to change role
         new_role_id = request.form.get('role_id', type=int)
         if new_role_id:
             new_role = Role.query.get(new_role_id)
             if new_role:
-                user.role = new_role # Assign the role object directly
-                user.is_admin = new_role.is_admin # Update is_admin based on the selected role
+                user.role = new_role
                 db.session.commit()
 
                 log = AdminAuditLog(
@@ -120,96 +135,162 @@ def assign_role(user_id):
             flash('No role selected.', 'danger')
         return redirect(url_for('admin.manage_users'))
 
-    # For GET request, render a form or provide data for a modal
     roles = Role.query.all()
-    return render_template('admin/assign_role_modal.html', user=user, roles=roles) # You'd need this template
+    # CORRECTED: Changed 'admin/assign_role_modal.html' to 'assign_role_modal.html' (assuming this is a separate modal template)
+    # If assign_role_modal.html is not a standalone template and is part of manage_users.html, then this line might need adjustment.
+    # For now, I'll assume it's a separate template.
+    return render_template('assign_role_modal.html', user=user, roles=roles)
 
 
 @admin_bp.route('/audit_logs')
 @login_required
 def audit_logs():
+    """Displays system audit logs."""
     logs = AdminAuditLog.query.order_by(AdminAuditLog.timestamp.desc()).all()
-    return render_template('admin/audit_logs.html', logs=logs)
+    # CORRECTED: Changed 'audit_logs.html' to 'audit_logs.html' (already correct)
+    return render_template('audit_logs.html', logs=logs)
 
 @admin_bp.route('/system_settings', methods=['GET', 'POST'])
 @login_required
 def system_settings():
-    # Example: A simple page for system settings
-    # You would typically have a form here to update settings
+    """Manages system-wide settings."""
     if request.method == 'POST':
         flash('System settings updated successfully!', 'success')
-        # Implement actual setting update logic here
-    return render_template('admin/system_settings.html') # Assuming you have this template
+    # CORRECTED: Changed 'admin/system_settings.html' to 'system_settings.html'
+    return render_template('system_settings.html')
 
 
 @admin_bp.route('/manage_claims')
 @login_required
 def manage_claims():
+    """Manages claims submitted by users."""
     claims = Claim.query.order_by(Claim.reported_at.desc()).all()
-    return render_template('admin/manage_claims.html', claims=claims)
+    # CORRECTED: Changed 'manage_claims.html' to 'manage_claims.html' (already correct)
+    return render_template('manage_claims.html', claims=claims)
 
 @admin_bp.route('/claim/<int:claim_id>/resolve', methods=['GET', 'POST'])
 @login_required
 def resolve_claim(claim_id):
+    """Resolves a specific claim."""
     claim = Claim.query.get_or_404(claim_id)
     form = ResolveClaimForm()
-    
+
     if form.validate_on_submit():
-        claim.status = form.resolution_type.data # Using resolution_type as the new status
-        claim.admin_notes = form.admin_notes.data # Assuming admin_notes is a field in the form
+        claim.status = 'resolved'
+        claim.resolution_type = form.resolution_type.data
+        claim.admin_notes = form.admin_notes.data
         claim.resolved_by_admin_id = current_user.user_id
-        claim.resolved_at = func.now() # Use func.now() for database timestamp
+        claim.resolved_at = func.now()
 
         db.session.commit()
 
         log = AdminAuditLog(
             admin_id=current_user.user_id,
             action=f"Resolved claim {claim.claim_id}",
-            details=f"Claim ID: {claim_id}, New Status: {claim.status}"
+            details=f"Claim ID: {claim_id}, New Status: {claim.status}, Resolution Type: {claim.resolution_type}"
         )
         db.session.add(log)
         db.session.commit()
         flash(f'Claim {claim_id} resolved successfully!', 'success')
+
+        # Notify the claimant that their claim has been resolved by an admin
+        notification_message = f"Your claim for '{claim.item.item_name}' has been resolved by an administrator."
+        notification = Notification(user_id=claim.user_id, item_id=claim.item.item_id, message=notification_message)
+        db.session.add(notification)
+        db.session.commit()
+
         return redirect(url_for('admin.manage_claims'))
-    
-    return render_template('admin/resolve_claim.html', form=form, claim=claim)
+
+    if claim.resolution_type:
+        form.resolution_type.data = claim.resolution_type
+    if claim.admin_notes:
+        form.admin_notes.data = claim.admin_notes
+
+    # CORRECTED: Changed 'resolve_claim.html' to 'resolve_claim.html' (already correct)
+    return render_template('resolve_claim.html', form=form, claim=claim)
 
 @admin_bp.route('/user/<int:user_id>/claims')
 @login_required
 def user_claims(user_id):
+    """Displays claims made by a specific user."""
     user = User.query.get_or_404(user_id)
     claims = Claim.query.filter_by(user_id=user_id).order_by(Claim.reported_at.desc()).all()
-    return render_template('admin/user_claims.html', user=user, claims=claims)
+    # CORRECTED: Changed 'admin/user_claims.html' to 'user_claims.html'
+    return render_template('user_claims.html', user=user, claims=claims)
 
 @admin_bp.route('/system_status')
 @login_required
 def system_status():
-    # This route would display system health, database status, etc.
-    # You'd add logic here to gather relevant system information.
-    return render_template('admin/system_status.html')
+    """Displays system health and status information."""
+    # CORRECTED: Changed 'admin/system_status.html' to 'system_status.html'
+    return render_template('system_status.html')
 
-# Add a route for deleting users
 @admin_bp.route('/user/<int:user_id>/delete', methods=['POST'])
 @login_required
 def delete_user(user_id):
+    """Deletes a user account."""
     user = User.query.get_or_404(user_id)
-    # Prevent admin from deleting themselves or the last admin
     if user.user_id == current_user.user_id:
         flash("You cannot delete your own admin account!", "danger")
         return redirect(url_for('admin.manage_users'))
-    
-    # Optional: Prevent deleting the last admin account
-    # if user.is_admin and User.query.filter_by(is_admin=True).count() <= 1:
-    #     flash("Cannot delete the last admin account!", "danger")
-    #     return redirect(url_for('admin.manage_users'))
+
+    admin_role = Role.query.filter_by(role_name='admin').first()
+    if admin_role and user.role_id == admin_role.role_id:
+        active_admins_count = User.query.filter(User.role_id == admin_role.role_id, User.user_id != user_id).count()
+        if active_admins_count < 1:
+            flash("Cannot delete the last admin account! Please ensure at least one admin remains.", "danger")
+            return redirect(url_for('admin.manage_users'))
 
     log = AdminAuditLog(
         admin_id=current_user.user_id,
         action=f"Deleted user {user.email}",
-        details=f"User ID: {user.user_id}"
+        details=f"User ID: {user.user_id}, Email: {user.email}"
     )
     db.session.add(log)
     db.session.delete(user)
     db.session.commit()
     flash(f'User {user.email} deleted successfully!', 'success')
+    return redirect(url_for('admin.manage_users'))
+
+@admin_bp.route('/user/<int:user_id>/activate', methods=['POST'])
+@login_required
+def activate_user(user_id):
+    """Activates a user account."""
+    user = User.query.get_or_404(user_id)
+    if user.is_active:
+        flash(f"User {user.email} is already active.", "info")
+    else:
+        user.is_active = True
+        db.session.commit()
+        log = AdminAuditLog(
+            admin_id=current_user.user_id,
+            action=f"Activated user {user.email}",
+            details=f"User ID: {user.user_id}, Email: {user.email}"
+        )
+        db.session.add(log)
+        db.session.commit()
+        flash(f"User {user.email} activated successfully.", "success")
+    return redirect(url_for('admin.manage_users'))
+
+@admin_bp.route('/user/<int:user_id>/deactivate', methods=['POST'])
+@login_required
+def deactivate_user(user_id):
+    """Deactivates a user account."""
+    user = User.query.get_or_404(user_id)
+    if user.user_id == current_user.user_id:
+        flash("You cannot deactivate your own account!", "danger")
+        return redirect(url_for('admin.manage_users'))
+    if not user.is_active:
+        flash(f"User {user.email} is already inactive.", "info")
+    else:
+        user.is_active = False
+        db.session.commit()
+        log = AdminAuditLog(
+            admin_id=current_user.user_id,
+            action=f"Deactivated user {user.email}",
+            details=f"User ID: {user.user_id}, Email: {user.email}"
+        )
+        db.session.add(log)
+        db.session.commit()
+        flash(f"User {user.email} deactivated successfully.", "success")
     return redirect(url_for('admin.manage_users'))

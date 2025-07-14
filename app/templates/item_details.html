@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Item Details - {{ item.title }}{% endblock %}
+{% block title %}Item Details - {{ item.item_name }}{% endblock %}
 
 {% block content %}
 <div class="container my-5">
@@ -8,7 +8,7 @@
         <div class="col-md-8">
             <div class="card shadow-lg">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">{{ item.title }}</h4>
+                    <h4 class="mb-0">{{ item.item_name }}</h4>
                     <span class="badge bg-{% if item.item_type == 'lost' %}danger{% else %}success{% endif %} fs-6">
                         {{ item.item_type|capitalize }} Item
                     </span>
@@ -18,37 +18,58 @@
                     <div class="row">
                         <div class="col-md-5">
                             {% if item.image_filename %}
-                                <img src="{{ url_for('main.uploaded_file', filename=item.image_filename) }}" class="img-fluid rounded mb-3" alt="{{ item.title }}">
+                                <img src="{{ url_for('main.uploaded_file', filename=item.image_filename) }}" class="img-fluid rounded mb-3" alt="{{ item.item_name }}">
                             {% else %}
-                                <img src="https://placehold.co/400x300/e0e0e0/555555?text=No+Image" class="img-fluid rounded mb-3" alt="No Image Available">
+                                {# Use a local placeholder image for consistency #}
+                                <img src="{{ url_for('static', filename='images/no_image_available.png') }}" class="img-fluid rounded mb-3" alt="No Image Available">
                             {% endif %}
                         </div>
 
                         <div class="col-md-7">
-                            <h5 class="card-subtitle mb-2 text-muted">{{ item.item_name }}</h5>
-                            <p><strong>Description:</strong> {{ item.description }}</p>
-                            <p><strong>Category:</strong> <span class="badge bg-secondary">{{ item.category|title }}</span></p>
-                            <p><strong>Location Found:</strong> {{ item.location_found }}</p>
-                            <p><strong>Date Found:</strong> {{ item.date_found.strftime('%Y-%m-%d') }}</p>
-                            <p><strong>Reported By:</strong> {{ item.user.name }} ({{ item.user.email }})</p>
-                            <p><strong>Reported On:</strong> {{ item.reported_at.strftime('%Y-%m-%d %H:%M') }}</p>
-                            <p><strong>Status:</strong> 
-                                <span class="badge bg-{% if item.status == 'found' %}success{% elif item.status == 'claimed' %}info{% elif item.status == 'returned' %}primary{% elif item.status == 'archived' %}secondary{% else %}warning{% endif %}">
-                                    {{ item.status.replace('_', ' ').title() }}
+                            <h5 class="card-subtitle mb-2 text-muted">Category: {{ item.category|capitalize }}</h5>
+                            <p class="card-text"><strong>Description:</strong> {{ item.description }}</p>
+                            <p class="card-text"><strong>Location:</strong> {{ item.location_found }}</p>
+                            <p class="card-text"><strong>Date:</strong> {{ item.date_found.strftime('%Y-%m-%d') }}</p>
+                            <p class="card-text">
+                                <strong>Status:</strong>
+                                <span class="badge bg-{% if item.status == 'active' %}success{% elif item.status == 'claimed' %}info{% else %}secondary{% endif %}">
+                                    {{ item.status|capitalize }}
                                 </span>
                             </p>
+                            <p class="card-text"><strong>Reported By:</strong> {{ item.reporter.name }} ({{ item.reporter.email }})</p>
 
-                            <hr>
-
-                            <div class="d-flex flex-wrap gap-2">
-                                {% if item.user_id != current_user.user_id and item.status not in ['returned', 'archived'] %}
-                                    <a href="{{ url_for('main.make_claim', item_id=item.item_id) }}" class="btn btn-success">Claim Item</a>
-                                {% endif %}
-
-                                {% if item.status == 'claimed' and item.user_id == current_user.user_id %}
-                                    {% set claim = item.claims|selectattr('status', 'equalto', 'pending')|first %}
-                                    {% if claim %}
-                                        <a href="{{ url_for('main.claim_messages', claim_id=claim.claim_id) }}" class="btn btn-warning">Review Claim</a>
+                            <div class="mt-4 d-grid gap-2">
+                                {% if current_user.is_authenticated %}
+                                    {% if item.user_id != current_user.user_id %} {# User is not the reporter #}
+                                        {% set claim = current_user.get_claim_for_item(item.item_id) %}
+                                        {% if item.status == 'active' %}
+                                            {% if not claim %}
+                                                <a href="{{ url_for('main.claim_item', item_id=item.item_id) }}" class="btn btn-primary">Claim This Item</a>
+                                            {% elif claim.status == 'pending' %}
+                                                <button class="btn btn-info" disabled>Claim Pending</button>
+                                                <a href="{{ url_for('main.claim_messages', claim_id=claim.claim_id) }}" class="btn btn-info">View Messages</a>
+                                            {% elif claim.status == 'approved' %}
+                                                <button class="btn btn-success" disabled>Claim Approved</button>
+                                                <a href="{{ url_for('main.claim_messages', claim_id=claim.claim_id) }}" class="btn btn-success">View Messages</a>
+                                            {% elif claim.status == 'rejected' %}
+                                                <button class="btn btn-danger" disabled>Claim Rejected</button>
+                                                <a href="{{ url_for('main.claim_messages', claim_id=claim.claim_id) }}" class="btn btn-danger">View Messages</a>
+                                            {% endif %}
+                                        {% elif item.status == 'resolved' and claim and claim.status == 'resolved' %}
+                                            <button class="btn btn-secondary" disabled>Claim Resolved</button>
+                                            {% if not claim.reviews %} {# Assuming 'reviews' is a collection on the claim #}
+                                                <a href="{{ url_for('main.review_claim', claim_id=claim.claim_id) }}" class="btn btn-outline-primary">Review Resolution</a>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% else %} {# User is the reporter #}
+                                        {% set claim = item.active_claim %} {# Assuming item.active_claim gets the relevant claim #}
+                                        {% if claim %}
+                                            <a href="{{ url_for('main.claim_messages', claim_id=claim.claim_id) }}" class="btn btn-warning">Review Claim</a>
+                                        {% endif %}
+                                        {# Schedule Pickup should be available when a claim is approved and item is active #}
+                                        {% if item.status == 'active' and claim and claim.status == 'approved' %}
+                                            <a href="{{ url_for('main.schedule_pickup', item_id=item.item_id) }}" class="btn btn-info">Schedule Pickup</a>
+                                        {% endif %}
                                     {% endif %}
                                 {% endif %}
 

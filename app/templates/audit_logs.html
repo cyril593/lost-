@@ -9,8 +9,9 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">System Activities</h5>
         <div class="d-flex">
-            <input type="text" class="form-control me-2" placeholder="Search logs...">
-            <button class="btn btn-sm btn-outline-secondary">Filter</button>
+            {# Search and Filter functionality requires backend implementation #}
+            <input type="text" class="form-control me-2" placeholder="Search logs..." id="logSearchInput">
+            <button class="btn btn-sm btn-outline-secondary" id="logFilterButton">Filter</button>
         </div>
     </div>
     <div class="card-body">
@@ -25,12 +26,16 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for log in logs %}
+                    {% for log in logs.items %} {# Assuming 'logs' is a pagination object #}
                     <tr>
                         <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
                         <td>{{ log.admin.email }}</td>
                         <td>{{ log.action }}</td>
-                        <td>{{ log.details|truncate(50) }}</td>
+                        <td>{{ log.details|truncate(50) }}
+                            {% if log.details|length > 50 %}
+                                <span class="text-muted" data-bs-toggle="tooltip" title="{{ log.details }}">...</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% else %}
                     <tr>
@@ -40,21 +45,68 @@
                 </tbody>
             </table>
         </div>
-        
-        <!-- Pagination -->
+
+        <!-- Dynamic Pagination -->
         <nav>
             <ul class="pagination justify-content-center">
-                <li class="page-item disabled">
-                    <a class="page-link" href="#">Previous</a>
-                </li>
-                <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                <li class="page-item"><a class="page-link" href="#">2</a></li>
-                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                <li class="page-item">
-                    <a class="page-link" href="#">Next</a>
-                </li>
+                {% if logs.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.audit_logs', page=logs.prev_num, search=request.args.get('search')) }}">Previous</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1">Previous</a>
+                    </li>
+                {% endif %}
+
+                {% for page_num in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == logs.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin.audit_logs', page=page_num, search=request.args.get('search')) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if logs.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.audit_logs', page=logs.next_num, search=request.args.get('search')) }}">Next</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1">Next</a>
+                    </li>
+                {% endif %}
             </ul>
         </nav>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips for truncated text
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // Basic search/filter functionality (requires backend to process 'search' query parameter)
+        const searchInput = document.getElementById('logSearchInput');
+        const filterButton = document.getElementById('logFilterButton');
+
+        filterButton.addEventListener('click', function() {
+            const searchValue = searchInput.value;
+            // Redirect to the current audit logs URL with a search query parameter
+            window.location.href = "{{ url_for('admin.audit_logs') }}?search=" + encodeURIComponent(searchValue);
+        });
+
+        // Pre-fill search input if a search query exists in the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentSearch = urlParams.get('search');
+        if (currentSearch) {
+            searchInput.value = currentSearch;
+        }
+    });
+</script>
 {% endblock %}

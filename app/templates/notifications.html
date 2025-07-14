@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Your Notifications{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Your Notifications</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if notifications %}
+        <div class="list-group">
+            {% for notification in notifications %}
+            <a href="{{ url_for('main.item_detail', item_id=notification.item_id) }}"
+               class="list-group-item list-group-item-action {% if not notification.is_read %}list-group-item-info{% endif %}">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">{{ notification.message }}</h5>
+                    <small class="text-muted">{{ notification.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                </div>
+                <p class="mb-1">Click to view item details</p>
+                {% if not notification.is_read %}
+                    {# Using a form for marking as read is correct for POST #}
+                    <form action="{{ url_for('main.mark_notification_read', notification_id=notification.notification_id) }}" method="post" class="mt-2">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Mark as Read</button>
+                    </form>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">No notifications yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

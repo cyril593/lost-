@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Schedule Pickup for {{ item.title }}{% endblock %}
+{% block title %}Schedule Pickup for {{ item.item_name }}{% endblock %}
 
 {% block content %}
 <div class="container my-5">
@@ -8,11 +8,11 @@
         <div class="col-md-8">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Schedule Pickup for "{{ item.title }}"</h4>
+                    <h4 class="mb-0">Schedule Pickup for "{{ item.item_name }}"</h4>
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        <strong>Item:</strong> {{ item.title }} ({{ item.item_type|capitalize }})<br>
+                        <strong>Item:</strong> {{ item.item_name }} ({{ item.item_type|capitalize }})<br>
                         <strong>Description:</strong> {{ item.description }}<br>
                         <strong>Category:</strong> {{ item.category|capitalize }}<br>
                         <strong>Current Status:</strong> <span class="badge bg-info">{{ item.status|capitalize }}</span>
@@ -25,11 +25,15 @@
                     <form method="POST" action="{{ url_for('main.schedule_pickup', item_id=item.item_id) }}">
                         <div class="mb-3">
                             <label for="pickupDate" class="form-label">Pickup Date</label>
-                            <input type="date" class="form-control" id="pickupDate" name="pickup_date" required>
+                            {# Add 'is-invalid' class if pickup_date has errors #}
+                            <input type="date" class="form-control" id="pickupDate" name="pickup_date" required value="{{ request.form.get('pickup_date', '') }}">
+                            {# Assuming form errors are handled via flash messages or a form object #}
                         </div>
                         <div class="mb-3">
                             <label for="claimantName" class="form-label">Claimant Name</label>
-                            <input type="text" class="form-control" id="claimantName" name="claimant_name" required>
+                            {# Add 'is-invalid' class if claimant_name has errors #}
+                            <input type="text" class="form-control" id="claimantName" name="claimant_name" required value="{{ request.form.get('claimant_name', '') }}">
+                            {# Assuming form errors are handled via flash messages or a form object #}
                         </div>
 
                         <div class="mb-3 form-check">
@@ -45,6 +49,7 @@
                     {% if item.qr_code %}
                     <h5 class="mt-4">Generated QR Code:</h5>
                     <div class="text-center">
+                        {# Ensure item.qr_code contains base64 encoded image data #}
                         <img src="data:image/png;base64,{{ item.qr_code }}" alt="Item QR Code" class="img-fluid" style="max-width: 200px;">
                         <p class="text-muted mt-2">This QR code is for pickup verification.</p>
                     </div>

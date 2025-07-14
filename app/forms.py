@@ -1,12 +1,14 @@
-# forms.py
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SelectField, TextAreaField, FileField, SubmitField
+from wtforms import StringField, PasswordField, BooleanField, SelectField, TextAreaField, FileField, SubmitField, DateField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, Regexp, Optional
 from flask_wtf.file import FileAllowed
 import os
 from PIL import Image
 from flask import current_app
-from app.__init__ import get_item_classifier
+
+
+STRONG_PASSWORD_REGEX = r'(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+])'
+STRONG_PASSWORD_MESSAGE = 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
 
 
 class LoginForm(FlaskForm):
@@ -17,7 +19,11 @@ class LoginForm(FlaskForm):
 
 class AdminLoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
-    password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
+    password = PasswordField('Password', validators=[
+        DataRequired(),
+        Length(min=8),
+        Regexp(STRONG_PASSWORD_REGEX, message=STRONG_PASSWORD_MESSAGE)
+    ])
     remember = BooleanField('Remember Me')
     submit = SubmitField('Login')
 
@@ -28,101 +34,50 @@ class RegistrationForm(FlaskForm):
     password = PasswordField('Password', validators=[
         DataRequired(),
         Length(min=8),
-        Regexp(r'(?=.*\d)(?=.*[a-z])(?=.*[A-Z])',
-               message='Password must contain at least one uppercase letter, one lowercase letter, and one number.')
+        Regexp(STRONG_PASSWORD_REGEX, message=STRONG_PASSWORD_MESSAGE)
     ])
-    confirm_password = PasswordField('Confirm Password', validators=[
-        DataRequired(),
-        EqualTo('password', message='Passwords must match')
-    ])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password', message='Passwords must match')])
     submit = SubmitField('Register')
 
-    def validate_email(self, email):
-        from app.models import User
-        user = User.query.filter_by(email=email.data.strip().lower()).first()
-        if user:
-            raise ValidationError('That email is already registered. Please choose a different one or login.')
-
-    def validate_student_id(self, student_id):
-        if student_id.data:
-            from app.models import User
-            user = User.query.filter_by(student_id=student_id.data).first()
-            if user:
-                raise ValidationError('This Student ID is already registered. Please check your input.')
-
-
 class ItemForm(FlaskForm):
-    item_name = StringField('Item Name', validators=[DataRequired(), Length(max=100)])
-    description = TextAreaField('Description', validators=[DataRequired(), Length(max=500)])
+    item_name = StringField('Item Name', validators=[DataRequired(), Length(min=2, max=100)])
+    description = TextAreaField('Description', validators=[DataRequired(), Length(min=10, max=500)])
     
+    item_type = SelectField('Item Type', choices=[
+        ('found', 'Found Item'),
+        ('lost', 'Lost Item')
+    ], validators=[DataRequired()])
+
     category = SelectField('Category', choices=[
         ('electronics', 'Electronics'),
         ('documents', 'Documents'),
         ('clothing', 'Clothing'),
         ('accessories', 'Accessories'),
-        ('personal_belongings', 'Personal Belongings'),
-        ('stationery', 'Stationery'),
+        ('keys', 'Keys'),
+        ('wallets', 'Wallets/Purses'),
+        ('bags', 'Bags/Backpacks'),
+        ('jewelry', 'Jewelry'),
+        ('books', 'Books/Stationery'),
+        ('sporting_goods', 'Sporting Goods'),
         ('other', 'Other')
     ], validators=[DataRequired()])
     
-    item_type = SelectField('Type', choices=[('found', 'Found Item'), ('lost', 'Lost Item')], validators=[DataRequired()])
-    
-    location_found = StringField('Location (Where it was found/lost)', validators=[DataRequired(), Length(max=100)])
-    date_found = StringField('Date (When it was found/lost - YYYY-MM-DD)', validators=[DataRequired(), Regexp(r'^\d{4}-\d{2}-\d{2}$', message='Date must be in YYYY-MM-DD format')])
-    
-    image = FileField('Upload Image (Optional)', validators=[
-        FileAllowed(['jpg', 'png', 'jpeg','jfif'], 'Images only!')
-    ])
-    auto_categorize_image = BooleanField('Auto-Categorize from Image (Uses AI)')
-    
+    location_found = StringField('Location (Where Item Was Found/Lost)', validators=[DataRequired(), Length(min=2, max=100)])
+    date_found = DateField('Date Found/Lost (YYYY-MM-DD)', format='%Y-%m-%d', validators=[DataRequired()])
+    image = FileField('Upload Image (Optional)', validators=[FileAllowed(['jpg', 'png', 'jpeg', 'jfif'], 'Images only!')])
     submit = SubmitField('Report Item')
 
-    def validate_image(self, field):
-        if field.data:
-            max_upload_size = current_app.config.get('MAX_CONTENT_LENGTH', 5 * 1024 * 1024)
-            if field.data.content_length > max_upload_size:
-                raise ValidationError(f'File size exceeds the limit of {max_upload_size / (1024 * 1024):.0f}MB.')
-
-            try:
-                Image.open(field.data)
-            except Exception:
-                raise ValidationError('Invalid image file.')
-            field.data.seek(0)
-
-    def auto_categorize(self, image_file): 
-       
-        try: #
-            classifier = get_item_classifier() 
-            if classifier is None:
-                return self.category.data 
-            
-            image = Image.open(image_file) 
-            predicted_category = classifier.predict_category(image) 
-            return predicted_category 
-        except Exception as e: #
-            current_app.logger.error(f"Auto-categorization failed: {e}") 
-            return self.category.data 
 class ClaimForm(FlaskForm):
-    reason = TextAreaField('Reason for Claiming', validators=[DataRequired(), Length(max=500)],
-                             render_kw={"placeholder": "Provide detailed reasons why this item is yours..."})
-    contact_info = StringField('Contact Information (e.g., Phone, Email)', validators=[DataRequired(), Length(max=200)],
-                               render_kw={"placeholder": "How can we contact you?"})
+    claim_details = TextAreaField('Claim Details (Describe the item and provide proof of ownership)', validators=[DataRequired(), Length(min=20, max=1000)])
     submit = SubmitField('Submit Claim')
 
 class MessageForm(FlaskForm):
-    message = TextAreaField('Your Message', validators=[DataRequired(), Length(min=1, max=500)],
-                            render_kw={"placeholder": "Type your message here..."})
+    message_text = TextAreaField('Message', validators=[DataRequired(), Length(min=5, max=500)])
     submit = SubmitField('Send Message')
 
 class ReviewForm(FlaskForm):
-    rating = SelectField('Rating', choices=[
-        (5, '5 - Excellent'),
-        (4, '4 - Good'),
-        (3, '3 - Fair'),
-        (2, '2 - Poor'),
-        (1, '1 - Very Poor')
-    ], coerce=int, validators=[DataRequired()])
-    comments = TextAreaField('Comments (Optional)', validators=[Length(max=500)])
+    rating = SelectField('Rating', choices=[(1, '1 Star'), (2, '2 Stars'), (3, '3 Stars'), (4, '4 Stars'), (5, '5 Stars')], coerce=int, validators=[DataRequired()])
+    review_text = TextAreaField('Review (Optional)', validators=[Length(max=500)])
     submit = SubmitField('Submit Review')
 
 class ResolveClaimForm(FlaskForm):
@@ -142,17 +97,16 @@ class RequestResetForm(FlaskForm):
     submit = SubmitField('Request Password Reset')
 
     def validate_email(self, email):
-        from app.models import User
+        from app.models import User 
         user = User.query.filter_by(email=email.data.strip().lower()).first()
         if user is None:
-            pass
+            pass 
 
 class ResetPasswordForm(FlaskForm):
     password = PasswordField('New Password', validators=[
         DataRequired(),
         Length(min=8),
-        Regexp(r'(?=.*\d)(?=.*[a-z])(?=.*[A-Z])',
-               message='Password must contain at least one uppercase letter, one lowercase letter, and one number.')
+        Regexp(STRONG_PASSWORD_REGEX, message=STRONG_PASSWORD_MESSAGE)
     ])
     confirm_password = PasswordField('Confirm New Password', validators=[
         DataRequired(),

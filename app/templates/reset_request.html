@@ -9,7 +9,8 @@
                     {{ form.hidden_tag() }}
                     <div class="mb-3">
                         {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control", placeholder="Enter your email") }}
+                        {# Add 'is-invalid' class if form.email has errors #}
+                        {{ form.email(class="form-control" + (' is-invalid' if form.email.errors else ''), placeholder="Enter your email") }}
                         {% if form.email.errors %}
                             <div class="invalid-feedback d-block">
                                 {% for error in form.email.errors %}

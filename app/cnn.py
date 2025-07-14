@@ -1,80 +1,106 @@
-import torchvision.models as models
-from PIL import Image
 import os
 import logging
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import transforms
+from PIL import Image
+import io
 import numpy as np
-import torchvision.transforms as transforms
+
+log = logging.getLogger(__name__)
+
+class DummyCNN(nn.Module):
+    def __init__(self):
+        super(DummyCNN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=8, kernel_size=3, padding=0)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.fc1 = nn.Linear(in_features=8 * 15 * 15, out_features=1)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = torch.flatten(x, 1)
+        x = torch.sigmoid(self.fc1(x))
+        return x
 
 class ItemClassifier:
-    def __init__(self, model_path):
-        try:
-            # Load the PyTorch model
-            # map_location='cpu' ensures it loads on CPU even if trained on GPU
-            self.model = torch.load(model_path, map_location=torch.device('cpu'))
-            self.model.eval() # Set the model to evaluation mode
-            self.categories = ['electronics', 'documents', 'clothing', 'accessories', 'other']
-            logging.info(f"CNN model loaded successfully from {model_path}")
-            
-            # Define transformations for inference
-            # These are standard transformations for pre-trained ImageNet models
-            self.transform = transforms.Compose([
-                transforms.Resize((224, 224)), # Resize image to 224x224 pixels
-                transforms.ToTensor(), # Convert PIL Image to PyTorch Tensor
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), # Normalize with ImageNet stats
-            ])
-        except Exception as e:
-            logging.error(f"Error loading model from {model_path}: {str(e)}")
-            self.model = None
-            self.transform = None # Ensure transform is None if model loading fails
+    _instance = None
+    _model = None
+    _is_loaded = False
+    _transform = None
 
-    def preprocess_image(self, image):
-        """
-        Preprocess the image to feed into CNN using torchvision transforms.
-        Expects a PIL Image object.
-        """
+    def __new__(cls, model_path=None):
+        if cls._instance is None:
+            cls._instance = super(ItemClassifier, cls).__new__(cls)
+            cls._instance._load_model(model_path)
+            cls._instance._transform = transforms.Compose([
+                transforms.Resize((32, 32)),
+                transforms.ToTensor(),
+            ])
+        return cls._instance
+
+    def _load_model(self, model_path):
+        if self._is_loaded:
+            return
+
+        if not model_path:
+            log.error("CNN model path not provided.")
+            return
+
+        if not os.path.exists(model_path):
+            log.error(f"CNN model path not found or invalid: {model_path}")
+            return
+
         try:
-            if self.transform is None:
-                logging.error("Image transformation pipeline not initialized. Model might not have loaded correctly.")
-                return None
-            if image.mode != "RGB":
-                image = image.convert("RGB")
-            # Apply transformations and add a batch dimension (unsqueeze(0))
-            return self.transform(image).unsqueeze(0)
+            self._model = DummyCNN()
+            self._model.load_state_dict(torch.load(model_path))
+            self._model.eval()
+            self._is_loaded = True
+            log.info(f"PyTorch CNN model loaded successfully from {model_path}")
         except Exception as e:
-            logging.error(f"Error preprocessing image: {str(e)}")
+            log.error(f"Failed to load PyTorch CNN classifier model from {model_path}: {e}")
+            self._model = None
+            self._is_loaded = False
+
+    def predict(self, image_data):
+        if not self._is_loaded or self._model is None:
+            log.warning("Attempted to predict with an unloaded or invalid CNN model.")
             return None
 
-    def predict(self, image):
-        """
-        Run prediction on an image.
-        Returns the predicted class index and the raw predictions (probabilities).
-        """
-        if not self.model:
-            logging.warning("Model not loaded, cannot perform prediction.")
-            return None, None
-            
-        processed_image = self.preprocess_image(image)
-        if processed_image is None:
-            return None, None
-            
         try:
-            with torch.no_grad(): # Disable gradient calculation for inference
-                outputs = self.model(processed_image)
-                # Apply softmax to convert logits to probabilities
-                predictions = torch.softmax(outputs, dim=1).cpu().numpy()
-                predicted_class = np.argmax(predictions, axis=1)[0]
-                return predicted_class, predictions[0]
-        except Exception as e:
-            logging.error(f"Prediction error: {str(e)}")
-            return None, None
+            img = Image.open(io.BytesIO(image_data)).convert('RGB')
+
+            img_tensor = self._transform(img)
+            img_tensor = img_tensor.unsqueeze(0)
+
+            with torch.no_grad():
+                output = self._model(img_tensor)
             
-    def predict_category(self, image):
-        """
-        Get the category name from the prediction.
-        """
-        class_idx, _ = self.predict(image)
-        if class_idx is not None and 0 <= class_idx < len(self.categories):
-            return self.categories[class_idx]
-        logging.warning(f"Could not determine category for image. Predicted class index: {class_idx}")
-        return "other" 
+            similarity_score = output.item()
+            similarity_percentage = int(similarity_score * 100)
+
+            return {
+                "matches": [
+                    {
+                        "item_id": 101,
+                        "item_name": "Dummy Item A (PyTorch)",
+                        "description": f"This is a dummy item with a similarity of {similarity_percentage}%.",
+                        "similarity": similarity_percentage,
+                        "image_url": "/static/uploads/dummy_item_a.jpg"
+                    },
+                    {
+                        "item_id": 102,
+                        "item_name": "Dummy Item B (PyTorch)",
+                        "description": "Another dummy item for testing purposes with PyTorch.",
+                        "similarity": max(0, similarity_percentage - 10),
+                        "image_url": "/static/uploads/dummy_item_b.jpg"
+                    }
+                ]
+            }
+        except Exception as e:
+            log.error(f"Error during PyTorch prediction: {e}")
+            return None
+
+    @property
+    def is_loaded(self):
+        return self._is_loaded

@@ -3,15 +3,15 @@ from datetime import datetime, timedelta
 from app.extensions import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import Enum, event, UniqueConstraint, Column, Integer, String, Boolean, DateTime, Text, Date
-from sqlalchemy.orm import validates, relationship
+from sqlalchemy import Enum, event, UniqueConstraint, Column, Integer, String, Boolean, DateTime, Text, Date, JSON
+from sqlalchemy.orm import validates, relationship, backref
 from sqlalchemy.dialects.mysql import SMALLINT, INTEGER
 from io import BytesIO
 import base64
-from flask import current_app # Import current_app
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature # Import itsdangerous
+from flask import current_app
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 
-# Association table for many-to-many relationship between roles and permissions
+
 role_permission = db.Table(
     'role_permission',
     db.Column('role_id', SMALLINT(unsigned=True), db.ForeignKey('roles.role_id', ondelete="CASCADE"), primary_key=True),
@@ -27,14 +27,14 @@ class Permission(db.Model):
 
     @staticmethod
     def seed_permissions():
-        permissions_to_seed = ['manage_users', 'view_audit_logs', 'resolve_claims']
-        for p_name in permissions_to_seed:
-            if not Permission.query.filter_by(permission_name=p_name).first():
-                db.session.add(Permission(permission_name=p_name))
+        permissions_to_seed = ['manage_users', 'manage_items', 'manage_claims', 'view_audit_logs', 'access_admin_dashboard', 'view_items']
+        for perm_name in permissions_to_seed:
+            if not Permission.query.filter_by(permission_name=perm_name).first():
+                db.session.add(Permission(permission_name=perm_name))
         db.session.commit()
 
     def __repr__(self):
-        return f"<Permission '{self.permission_name}'>"
+        return f"<Permission {self.permission_name}>"
 
 class Role(db.Model):
     __tablename__ = 'roles'
@@ -48,61 +48,55 @@ class Role(db.Model):
     @staticmethod
     def seed_roles():
         roles_to_seed = {
-            'general_user': 'Standard user with basic access.',
-            'admin': 'Administrator with full system access.'
+            'admin': 'Administrator with full access.',
+            'general_user': 'Standard user with basic functionalities.'
         }
-        for r_name, r_desc in roles_to_seed.items():
-            if not Role.query.filter_by(role_name=r_name).first():
-                role = Role(role_name=r_name, description=r_desc)
+        for name, desc in roles_to_seed.items():
+            role = Role.query.filter_by(role_name=name).first()
+            if not role:
+                role = Role(role_name=name, description=desc)
                 db.session.add(role)
-                # Assign permissions to admin role
-                if r_name == 'admin':
-                    manage_users_perm = Permission.query.filter_by(permission_name='manage_users').first()
-                    view_audit_logs_perm = Permission.query.filter_by(permission_name='view_audit_logs').first()
-                    resolve_claims_perm = Permission.query.filter_by(permission_name='resolve_claims').first()
-                    if manage_users_perm:
-                        role.permissions.append(manage_users_perm)
-                    if view_audit_logs_perm:
-                        role.permissions.append(view_audit_logs_perm)
-                    if resolve_claims_perm:
-                        role.permissions.append(resolve_claims_perm)
+                db.session.flush()
+
+            if name == 'admin':
+                all_perms = Permission.query.all()
+                for perm in all_perms:
+                    if perm not in role.permissions:
+                        role.permissions.append(perm)
+            elif name == 'general_user':
+                view_items_perm = Permission.query.filter_by(permission_name='view_items').first()
+                if view_items_perm and view_items_perm not in role.permissions:
+                    role.permissions.append(view_items_perm)
         db.session.commit()
 
-    def has_permission(self, permission_name):
-        return any(p.permission_name == permission_name for p in self.permissions)
-
     def __repr__(self):
-        return f"<Role '{self.role_name}'>"
+        return f"<Role {self.role_name}>"
 
-class User(db.Model, UserMixin):
+class User(UserMixin, db.Model):
     __tablename__ = 'users'
     user_id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
     email = Column(String(120), unique=True, nullable=False)
-    password_hash = Column(String(256))
-    student_id = Column(String(20), unique=True, nullable=True) # Made nullable to allow non-student users
-    is_admin = Column(Boolean, default=False)
-    registration_date = Column(DateTime, default=datetime.utcnow)
+    student_id = Column(String(20), unique=True, nullable=True)
+    password_hash = Column(String(256), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime)
-    is_active = Column(Boolean, default=True) # Added for user activation/deactivation
+    is_active = Column(Boolean, default=True)
+
     role_id = Column(SMALLINT(unsigned=True), db.ForeignKey('roles.role_id'), nullable=False)
-
-    # Relationships
     role = relationship('Role', back_populates='users')
-    reported_items = relationship('Item', back_populates='reporter', lazy='dynamic', cascade='all, delete-orphan')
-    claims = relationship('Claim', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
-    messages_sent = relationship('ClaimMessage', foreign_keys='ClaimMessage.sender_id', back_populates='sender', lazy='dynamic')
-    messages_received = relationship('ClaimMessage', foreign_keys='ClaimMessage.receiver_id', back_populates='receiver', lazy='dynamic')
-    reviews_given = relationship('ClaimReview', back_populates='reviewer', lazy='dynamic', cascade='all, delete-orphan')
-    admin_logs = relationship('AdminAuditLog', back_populates='admin', lazy='dynamic', cascade='all, delete-orphan')
 
-    __table_args__ = (UniqueConstraint('email', name='_email_uc'),)
+    reported_items = relationship('Item', back_populates='reporter', lazy=True, cascade='all, delete-orphan')
+    claims_made = relationship('Claim', foreign_keys='Claim.user_id', back_populates='claimant', lazy=True, cascade='all, delete-orphan')
+    items_found_claimed_by_others = relationship('Claim', foreign_keys='Claim.finder_id', back_populates='finder', lazy=True)
+    messages_sent = relationship('ClaimMessage', back_populates='sender', lazy=True, cascade='all, delete-orphan')
+    reviews_given = relationship('ClaimReview', back_populates='reviewer', lazy=True, cascade='all, delete-orphan')
+    admin_logs = relationship('AdminAuditLog', back_populates='admin', lazy=True, cascade='all, delete-orphan')
+    notifications = relationship('Notification', back_populates='user', lazy=True, cascade='all, delete-orphan')
 
-    @validates('email')
-    def validate_email(self, key, email):
-        if '@' not in email:
-            raise ValueError("Email must contain '@'")
-        return email.lower()
+    @property
+    def is_admin(self):
+        return self.role and self.role.role_name == 'admin'
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -110,82 +104,117 @@ class User(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    # Flask-Login integration
     def get_id(self):
         return str(self.user_id)
 
-    def is_active(self):
-        return self.is_active
-
-    # Secure password reset tokens
-    def get_reset_token(self, expires_sec=1800): # 30 minutes
+    def get_reset_token(self, expires_sec=1800):
         s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-        return s.dumps({'user_id': self.user_id})
+        return s.dumps({'user_id': self.user_id}, salt='password-reset-salt', expires_sec=expires_sec)
 
     @staticmethod
-    def verify_reset_token(token, expires_sec=1800):
+    def verify_reset_token(token):
         s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
         try:
-            data = s.loads(token, max_age=expires_sec)
-            user_id = data.get('user_id')
-            if user_id is None:
-                return None
+            data = s.loads(token, salt='password-reset-salt', max_age=1800)
         except (SignatureExpired, BadTimeSignature):
             return None
-        return User.query.get(user_id)
+        return User.query.get(data['user_id'])
+
+    @validates('email')
+    def validate_email(self, key, email):
+        if not email:
+            raise AssertionError('Email cannot be empty')
+        if '@' not in email:
+            raise AssertionError('Invalid email format')
+        return email.lower()
+
+    @validates('name')
+    def validate_name(self, key, name):
+        if not name:
+            raise AssertionError('Name cannot be empty')
+        return name
+
+    @property
+    def unread_notifications_count(self):
+        return Notification.query.filter_by(user_id=self.user_id, is_read=False).count()
+
+    def get_claim_for_item(self, item_id):
+        """Helper to get a claim made by this user for a specific item."""
+        return Claim.query.filter_by(user_id=self.user_id, item_id=item_id).first()
 
     def __repr__(self):
         return f"<User {self.email}>"
 
+@event.listens_for(User, 'before_insert')
+def set_default_user_role(mapper, connection, target):
+    if target.role_id is None:
+        general_user_role = Role.query.filter_by(role_name='general_user').first()
+        if general_user_role:
+            target.role_id = general_user_role.role_id
+        else:
+            current_app.logger.error("Default 'general_user' role not found during user creation.")
+            raise Exception("Default user role not found. Please run 'flask seed_roles'.")
+
+
 class Item(db.Model):
     __tablename__ = 'items'
     item_id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
-    user_id = Column(INTEGER(unsigned=True), db.ForeignKey('users.user_id'), nullable=False) # Reporter of the item
-    item_name = Column(String(100), nullable=False) # e.g., "Blue Backpack"
+    item_name = Column(String(100), nullable=False)
     description = Column(Text, nullable=False)
-    category = Column(String(50), nullable=False) # e.g., "Electronics", "Documents", "Clothing"
-    item_type = Column(Enum('lost', 'found', name='item_types'), nullable=False) # 'lost' or 'found'
-    location_found = Column(String(100), nullable=False) # Where the item was found/lost
-    date_found = Column(Date, nullable=False) # When the item was found/lost
-    image_filename = Column(String(128), nullable=True) # Filename of the uploaded image
-    status = Column(Enum('pending', 'claimed', 'returned', 'archived', name='item_statuses'), default='pending', nullable=False) # e.g., 'pending', 'claimed', 'returned'
-    reported_at = Column(DateTime, default=datetime.utcnow)
-    qr_code_data = Column(db.Text, nullable=True) # Stores base64 encoded QR code image data
+    category = Column(String(50), nullable=False)
 
-    # Relationships
+    item_type = Column(String(10), nullable=False, default='found')
+    location_found = Column(String(100), nullable=False)
+    date_found = Column(Date, nullable=False)
+    image_filename = Column(String(128), nullable=True)
+    status = Column(String(20), default='active', nullable=False)
+
+    posted_at = Column(DateTime, default=datetime.utcnow)
+
+    image_features = Column(JSON, nullable=True)
+    qr_code = Column(Text, nullable=True)
+
+    user_id = Column(INTEGER(unsigned=True), db.ForeignKey('users.user_id'), nullable=False)
     reporter = relationship('User', back_populates='reported_items')
-    claims = relationship('Claim', back_populates='item', lazy='dynamic', cascade='all, delete-orphan')
+
+    claims = relationship('Claim', back_populates='item', lazy=True, cascade='all, delete-orphan')
+    notifications = relationship('Notification', back_populates='item', lazy=True, cascade='all, delete-orphan')
 
     @property
-    def qr_code(self):
-        """Decode base64 QR code data for displaying in templates."""
-        return self.qr_code_data
-
-    @qr_code.setter
-    def qr_code(self, data):
-        """Set base64 encoded QR code data."""
-        self.qr_code_data = data
+    def active_claim(self):
+        """Returns the first pending or under_review claim for this item."""
+        return Claim.query.filter_by(item_id=self.item_id).filter(
+            Claim.status.in_(['pending', 'under_review'])
+        ).first()
 
     def __repr__(self):
-        return f"<Item {self.item_name} ({self.item_type})>"
+        return f"<Item {self.item_id}: {self.item_name} ({self.item_type})>"
 
 class Claim(db.Model):
     __tablename__ = 'claims'
     claim_id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
     item_id = Column(INTEGER(unsigned=True), db.ForeignKey('items.item_id'), nullable=False)
-    user_id = Column(INTEGER(unsigned=True), db.ForeignKey('users.user_id'), nullable=False) # The user making the claim
-    reason = Column(Text, nullable=False) # Reason for claiming, detailed description
+    user_id = Column(INTEGER(unsigned=True), db.ForeignKey('users.user_id'), nullable=False)
+    claim_details = Column(Text, nullable=False)
+    status = Column(String(20), default='pending', nullable=False)
     reported_at = Column(DateTime, default=datetime.utcnow)
-    status = Column(Enum('pending', 'approved', 'rejected', 'resolved', name='claim_statuses'), default='pending', nullable=False) # e.g., 'pending', 'approved', 'rejected', 'resolved'
-    resolved_at = Column(DateTime, nullable=True)
-    resolution_type = Column(Enum('returned_to_owner', 'kept', 'donated', 'other', name='resolution_types'), nullable=True)
-    admin_notes = Column(Text, nullable=True) # Notes added by admin during resolution
 
-    # Relationships
+    finder_id = Column(INTEGER(unsigned=True), db.ForeignKey('users.user_id'), nullable=False)
+    proof_filename = Column(String(128), nullable=True)
+
+    resolution_type = Column(String(50), nullable=True)
+    admin_notes = Column(Text, nullable=True)
+    resolved_by_admin_id = Column(INTEGER(unsigned=True), db.ForeignKey('users.user_id'), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+
     item = relationship('Item', back_populates='claims')
-    user = relationship('User', back_populates='claims')
-    messages = relationship('ClaimMessage', back_populates='claim', lazy='dynamic', cascade='all, delete-orphan')
-    reviews = relationship('ClaimReview', back_populates='claim', lazy='dynamic', cascade='all, delete-orphan')
+
+    claimant = relationship('User', foreign_keys=[user_id], back_populates='claims_made')
+    finder = relationship('User', foreign_keys=[finder_id], back_populates='items_found_claimed_by_others')
+    resolved_by_admin = relationship('User', foreign_keys=[resolved_by_admin_id], backref='claims_resolved_by_me', lazy=True)
+
+    messages = relationship('ClaimMessage', back_populates='claim', lazy=True, cascade='all, delete-orphan')
+    reviews = relationship('ClaimReview', back_populates='claim', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
         return f"<Claim {self.claim_id} for Item {self.item_id} by User {self.user_id}>"
@@ -195,29 +224,24 @@ class ClaimMessage(db.Model):
     message_id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
     claim_id = Column(INTEGER(unsigned=True), db.ForeignKey('claims.claim_id'), nullable=False)
     sender_id = Column(INTEGER(unsigned=True), db.ForeignKey('users.user_id'), nullable=False)
-    receiver_id = Column(INTEGER(unsigned=True), db.ForeignKey('users.user_id'), nullable=False) # The other party in the conversation
-    content = Column(Text, nullable=False)
+    message_text = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    is_read = Column(Boolean, default=False)
-    
+
     claim = relationship('Claim', back_populates='messages')
-    sender = relationship('User', foreign_keys=[sender_id], back_populates='messages_sent')
-    receiver = relationship('User', foreign_keys=[receiver_id], back_populates='messages_received')
+    sender = relationship('User', back_populates='messages_sent')
 
     def __repr__(self):
-        return f"<ClaimMessage {self.message_id} (Claim {self.claim_id}) from {self.sender_id} to {self.receiver_id}>"
-
+        return f"<ClaimMessage {self.message_id} on Claim {self.claim_id} by User {self.sender_id}>"
 
 class ClaimReview(db.Model):
     __tablename__ = 'claim_reviews'
-    
     review_id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
     claim_id = Column(INTEGER(unsigned=True), db.ForeignKey('claims.claim_id'), nullable=False)
     reviewer_id = Column(INTEGER(unsigned=True), db.ForeignKey('users.user_id'), nullable=False)
-    rating = Column(SMALLINT, nullable=False)  # 1-5 scale
-    comments = Column(Text)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    
+    rating = Column(SMALLINT(unsigned=True))
+    review_text = Column(Text)
+    reviewed_at = Column(DateTime, default=datetime.utcnow)
+
     claim = relationship('Claim', back_populates='reviews')
     reviewer = relationship('User', foreign_keys=[reviewer_id], back_populates='reviews_given')
 
@@ -229,8 +253,8 @@ class AdminAuditLog(db.Model):
 
     log_id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
     admin_id = Column(INTEGER(unsigned=True), db.ForeignKey('users.user_id'), nullable=False)
-    action = Column(String(128), nullable=False) # e.g., "User created", "Item deleted", "Claim approved"
-    details = Column(Text) # Additional context for the action
+    action = Column(String(128), nullable=False)
+    details = Column(Text)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     admin = relationship('User', back_populates='admin_logs')
@@ -238,15 +262,29 @@ class AdminAuditLog(db.Model):
     def __repr__(self):
         return f"<AdminAuditLog {self.log_id} by Admin {self.admin_id} - {self.action} at {self.timestamp}>"
 
-# Event listener to seed roles and permissions after tables are created
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    notification_id = Column(INTEGER(unsigned=True), primary_key=True, autoincrement=True)
+    user_id = Column(INTEGER(unsigned=True), db.ForeignKey('users.user_id'), nullable=False)
+    item_id = Column(INTEGER(unsigned=True), db.ForeignKey('items.item_id'), nullable=True)
+    message = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    is_read = Column(Boolean, default=False)
+
+    user = relationship('User', back_populates='notifications')
+    item = relationship('Item', back_populates='notifications')
+
+    def __repr__(self):
+        return f"<Notification {self.notification_id} for User {self.user_id}>"
+
+
 @event.listens_for(Role.__table__, 'after_create')
 def receive_after_create_role(target, connection, **kw):
-    # This ensures permissions exist before roles try to link to them
-    Permission.seed_permissions()
+    if not Permission.query.first():
+        Permission.seed_permissions()
     Role.seed_roles()
 
 @event.listens_for(Permission.__table__, 'after_create')
 def receive_after_create_permission(target, connection, **kw):
-    # This might be redundant if Role seed calls Permission.seed_permissions,
-    # but ensures permissions are there regardless of call order in initial setup
-    Permission.seed_permissions()
+    if not Permission.query.first():
+        Permission.seed_permissions()

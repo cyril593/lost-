@@ -12,34 +12,46 @@
                 </div>
                 <div class="card-body">
                     <h5>Claim Details</h5>
-                    <p><strong>Item:</strong> {{ claim.item.title }}</p>
+                    <p><strong>Item:</strong> {{ claim.item.item_name }}</p>
                     <p><strong>Status:</strong> {{ claim.status|title }}</p>
                     <p><strong>Resolution Type:</strong> {{ claim.resolution_type|title }}</p>
                     <p><strong>Resolved On:</strong> {% if claim.resolved_at %}{{ claim.resolved_at.strftime('%Y-%m-%d') }}{% else %}N/A{% endif %}</p>
-                    
+
                     {% if claim.admin_notes %}
                     <p><strong>Admin Notes:</strong> {{ claim.admin_notes }}</p>
                     {% endif %}
-                    
+
                     <hr>
-                    
+
                     <form method="POST">
                         {{ form.hidden_tag() }}
-                        
+
                         <div class="mb-3">
                             {{ form.rating.label(class="form-label") }}
-                            {{ form.rating(class="form-select") }}
+                            {# Add 'is-invalid' class if form.rating has errors #}
+                            {{ form.rating(class="form-select" + (' is-invalid' if form.rating.errors else '')) }}
                             <div class="form-text">
                                 How would you rate your experience with this claim process?
                             </div>
+                            {% if form.rating.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.rating.errors|join(', ') }}
+                                </div>
+                            {% endif %}
                         </div>
-                        
+
                         <div class="mb-3">
-                            {{ form.comments.label(class="form-label") }}
-                            {{ form.comments(class="form-control", rows=3, 
+                            {{ form.review_text.label(class="form-label") }}
+                            {# Add 'is-invalid' class if form.review_text has errors #}
+                            {{ form.review_text(class="form-control" + (' is-invalid' if form.review_text.errors else ''), rows=3,
                                 placeholder="Optional: Share details about your experience") }}
+                            {% if form.review_text.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.review_text.errors|join(', ') }}
+                                </div>
+                            {% endif %}
                         </div>
-                        
+
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <button type="submit" class="btn btn-primary me-md-2">Submit Review</button>
                             <a href="{{ url_for('main.item_detail', item_id=claim.item_id) }}" class="btn btn-secondary">Cancel</a>
